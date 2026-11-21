@@ -213,10 +213,11 @@ def _load_export(series_dir: Path, meta: dict[str, Any], order: list[int]) -> np
 
 
 def candidates_from_study(study_dir: Path, study: Any) -> list[Candidate]:
-    """Candidates from an imported study folder (``series/<id>/meta.json`` + 8-bit slice images).
+    """Candidates from an imported study folder.
 
-    Intensities are the exported display window (0-255): enough for fusion, registration and
-    segmentation, but not for absolute values (e.g. ADC in mm2/s).
+    Prefers the full-precision ``volumes/<id>.npz`` saved by the importer (real units such as ADC);
+    falls back to the 8-bit display slices (``series/<id>/``), which are fine for registration and
+    segmentation but carry no absolute units.
     """
     out: list[Candidate] = []
     for info in getattr(study, "series", []):
@@ -226,10 +227,24 @@ def candidates_from_study(study_dir: Path, study: Any) -> list[Candidate]:
         meta = json.loads((sdir / "meta.json").read_text(encoding="utf-8"))
         if meta.get("plane") not in ("axial", "sagittal", "coronal", "oblique"):
             continue
-        built = _stack_from_export(meta)
-        if built is None:
-            continue
-        geom, order = built
+        npz = Path(study_dir) / "volumes" / f"{info.id}.npz"
+        loader: Callable[[], np.ndarray]
+        if npz.is_file():  # full-precision volume saved by the importer (real units)
+            with np.load(npz) as z:
+                geom = Geometry(
+                    origin=tuple(float(v) for v in z["origin"]),  # type: ignore[arg-type]
+                    spacing=tuple(float(v) for v in z["spacing"]),  # type: ignore[arg-type]
+                    direction=tuple(float(v) for v in z["direction"]),  # type: ignore[arg-type]
+                )
+                n_slices = int(z["data"].shape[0])
+            order = list(range(n_slices))
+            loader = lambda npz=npz: np.load(npz)["data"].astype(np.float32)  # type: ignore[misc]  # noqa: E731
+        else:
+            built = _stack_from_export(meta)
+            if built is None:
+                continue
+            geom, order = built
+            loader = lambda sdir=sdir, meta=meta, order=order: _load_export(sdir, meta, order)  # type: ignore[misc]  # noqa: E731
         text = f"{meta.get('desc') or ''} {meta.get('title') or ''}"
         bm = _B_TEXT.search(text.upper())
         out.append(
@@ -241,7 +256,7 @@ def candidates_from_study(study_dir: Path, study: Any) -> list[Candidate]:
                 role=str(meta.get("role", "primary")),
                 geometry=geom,
                 n=len(order),
-                load=lambda sdir=sdir, meta=meta, order=order: _load_export(sdir, meta, order),  # type: ignore[misc]
+                load=loader,
                 b_value=float(bm.group(1)) if bm else None,
                 enhanced=is_enhanced_text(text),
             )

@@ -29,8 +29,24 @@ log = get_logger("medmereport.import")
 _SORT_KEY = {"axial": lambda p: -p[2], "sagittal": lambda p: p[0], "coronal": lambda p: p[1]}
 
 
-def _volume_frames(group: SeriesGroup, plane: str) -> tuple[list[np.ndarray], list[list[float]], list[float]]:
+def save_float_volume(path: Path, vol: np.ndarray, geom: Any) -> None:
+    """Keep the full-precision volume (real units, e.g. ADC) for the 3D pipeline. Private study artifact."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(
+        path,
+        data=vol.astype(np.float32),
+        origin=np.array(geom.origin, float),
+        spacing=np.array(geom.spacing, float),
+        direction=np.array(geom.direction, float),
+    )
+
+
+def _volume_frames(
+    group: SeriesGroup, plane: str, keep: Path | None = None
+) -> tuple[list[np.ndarray], list[list[float]], list[float]]:
     vol, geom = load_volume(group)
+    if keep is not None:
+        save_float_volume(keep, vol, geom)
     aff = geom.affine()
     positions = [aff @ np.array([0.0, 0.0, float(k), 1.0]) for k in range(vol.shape[0])]
     pos = [p[:3] for p in positions]
@@ -51,7 +67,7 @@ def _export_dicom_series(group: SeriesGroup, idx: int, out: Path) -> SeriesInfo:
     slices: list[dict[str, Any]] = []
     iop = list(h.orientation) if h.orientation else [1.0, 0.0, 0.0, 0.0, 1.0, 0.0]
     if group.is_volume and group.geometry is not None:
-        frames, pos, iop = _volume_frames(group, cls.plane)
+        frames, pos, iop = _volume_frames(group, cls.plane, keep=out / "volumes" / f"{sid}.npz")
         slices = [{"pos": p} for p in pos]
     else:
         frames = [f if f.ndim == 2 else f.mean(axis=-1) for f in load_frames(group)]
