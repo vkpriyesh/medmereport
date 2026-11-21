@@ -52,17 +52,21 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 ## M2 — Brain MR 3D
 | ID | Task | Lane | Deps | Paths | Acceptance | Status | Owner |
 |---|---|---|---|---|---|---|---|
-| T2.1 | Pipeline base API (plan/run/progress/cancel/provenance) + registry | P | T0.6 | `engine/medmereport/pipelines/base.py` | Dummy pipeline runs end to end | doing | agent-G |
+| T2.1 | Pipeline base API (plan/run/progress/cancel/provenance) + registry | P | T0.6 | `engine/medmereport/pipelines/base.py` | Dummy pipeline runs end to end | done | agent-G |
 | T2.2 | Spatial helpers: typed transforms, LPS↔three conversion, resample with an explicit direction | G | T0.3 | `engine/medmereport/geometry/space.py` | Shifted-phantom test catches a reversed transform | done | claude |
-| T2.3 | Multi-stack fusion (axial+sagittal+coronal → 1 mm iso, rigid motion correction) | P | T2.2,T1.2 | `pipelines/brain_mr/fusion.py` | Phantom test: fused resolution better than any single input | doing | agent-P |
-| T2.4 | SynthSeg → ONNX conversion script (offline, documented) + `synthseg_onnx` backend | P | T2.1 | `engine/medmereport/segment/synthseg/`, `scripts/convert_synthseg.py` | Matches TF output (Dice ≥ 0.98) on public sample | doing | agent-P2 |
-| T2.5 | Atlas-registration fallback backend (MNI152 2009c + Harvard-Oxford; prototype logic, fixed direction, SynthSeg-free skull strip) | P | T2.2 | `engine/medmereport/segment/atlas/` | Public T1 → labels with sanity checks | doing | agent-P |
-| T2.6 | Surface builder: patient surface, hemisphere/cerebellum/brainstem split, vertex labelling, deep structures, decimation, GLB with node names | G | T2.4 or T2.5 | `engine/medmereport/geometry/` | GLB < 30 MB, ≥ 90 named regions | doing | agent-G |
-| T2.7 | Stats & sanity checks (volume, ADC, FLAIR/T2 ratios, asymmetry; reference ranges with citations; plausibility flags) | G | T2.6 | `engine/medmereport/analysis/` | Each measurement has method + caveat fields | doing | agent-G |
-| T2.8 | Region thumbnails "on your scan" | G | T2.6,T1.9 | `engine/medmereport/export/thumbs.py` | Three views per region | doing | agent-G |
-| T2.9 | 3D explorer UI (port prototype: colour-by, layers, explode, clip, X-ray, pin, tooltips, presets, screenshot) | W | T0.7,T2.6 | `web/src/lib/viewer3d/` | 60 fps on an integrated GPU with the full brain | doing | agent-W |
-| T2.10 | Region card UI (My Scan) + deep links to the 2D viewer | W | T2.7,T2.9,T1.11 | `web/src/lib/cards/` | Clicking a region shows measurements and thumbnails | doing | agent-W |
-| T2.11 | Anatomy knowledge base (generic, cited, i18n-ready JSON; brain first) | K | – | `engine/medmereport/knowledge/` | Schema-validated; reviewed against textbooks | doing | agent-K |
+| T2.3 | Multi-stack fusion (axial+sagittal+coronal → 1 mm iso, rigid motion correction) | P | T2.2,T1.2 | `pipelines/brain_mr/fusion.py` | Phantom test: fused resolution better than any single input | done | agent-P |
+| T2.4 | SynthSeg → ONNX conversion script (offline, documented) + `synthseg_onnx` backend | P | T2.1 | `engine/medmereport/segment/synthseg/`, `scripts/convert_synthseg.py` | Matches TF output (Dice ≥ 0.98) on public sample | done | agent-P2 |
+| T2.5 | Atlas-registration fallback backend (MNI152 2009c + Harvard-Oxford; prototype logic, fixed direction, SynthSeg-free skull strip) | P | T2.2 | `engine/medmereport/segment/atlas/` | Public T1 → labels with sanity checks | done | agent-P |
+| T2.6 | Surface builder: patient surface, hemisphere/cerebellum/brainstem split, vertex labelling, deep structures, decimation, GLB with node names | G | T2.4 or T2.5 | `engine/medmereport/geometry/` | GLB < 30 MB, ≥ 90 named regions | done | agent-G |
+| T2.7 | Stats & sanity checks (volume, ADC, FLAIR/T2 ratios, asymmetry; reference ranges with citations; plausibility flags) | G | T2.6 | `engine/medmereport/analysis/` | Each measurement has method + caveat fields | done | agent-G |
+| T2.8 | Region thumbnails "on your scan" | G | T2.6,T1.9 | `engine/medmereport/export/thumbs.py` | Three views per region | done | agent-G |
+| T2.9 | 3D explorer UI (port prototype: colour-by, layers, explode, clip, X-ray, pin, tooltips, presets, screenshot) | W | T0.7,T2.6 | `web/src/lib/viewer3d/` | 60 fps on an integrated GPU with the full brain | done | agent-W |
+| T2.10 | Region card UI (My Scan) + deep links to the 2D viewer | W | T2.7,T2.9,T1.11 | `web/src/lib/cards/` | Clicking a region shows measurements and thumbnails | done | agent-W |
+| T2.11 | Anatomy knowledge base (generic, cited, i18n-ready JSON; brain first) | K | – | `engine/medmereport/knowledge/` | Schema-validated; reviewed against textbooks | done | agent-K |
+
+| T2.12 | Publish SynthSeg ONNX weights as GitHub release assets (`models-synthseg-2.0`) on vkpriyesh/medmereport so `models pull synthseg-*` works | D | T2.4 | release | Hashes match registry | blocked | needs owner approval to publish (outward-facing) |
+| T2.13 | Head/skin surface layer (`H__skin`) + TOF vessel pipeline hookup in brain model | G | T2.6,T3.3 | geometry/ | Layers toggle in UI | todo | |
+| T2.14 | Hover raycast acceleration (BVH) for ~900k-tri scenes; real-hardware fps check | W | T2.9 | web/src/lib/viewer3d | ≥45 fps on integrated GPU | todo | |
 
 ## M3 — CT, vessels, spine
 | ID | Task | Lane | Deps | Paths | Acceptance | Status | Owner |
@@ -120,3 +124,5 @@ T8.1 Tauri v2 desktop app (engine sidecar) · T8.2 hosted web mode (OIDC, job qu
 2026-11-21 | agents I/Q/W + claude | T1.1–T1.12 | done | 5 container adapters (dicomdir, dcmburner, radiant, loose zip/7z, images/PDF), DICOM layer, classifier, importer + study API, import wizard, 2D viewer, dashboard, sagittal page. 200 engine + 44 web tests. Verified in Chrome against the real engine: synthetic encrypted disc → password → dashboard → viewer
 2026-11-21 | claude | T0.9 | done | diagnose (de-identified report) added
 2026-11-21 | claude | M2 | claim | contracts (LabelMap, artifact format, vocabulary) + T2.2 spatial helpers done; 5 lanes dispatched in parallel (P atlas+fusion, P2 SynthSeg ONNX, G surfaces/stats/thumbs/job, W 3D UI, K knowledge)
+2026-11-21 | agents P/P2/G/W/K + claude | T2.1–T2.11 | done | atlas backend (Dice 0.96 brain, ~0.95 deep grey, ~80 s), SynthSeg 2.0 ONNX (Dice>=0.999 vs TF untiled; adaptive RAM budget), fusion, carved surface + GLB, stats w/ caveats, thumbs, label maps, model job/route, 3D explorer + cards, KB en/hi (62 structures). Verified in Chrome: demo DICOM disc -> 3D model in 136 s with 102 regions. 302 engine + 81 web tests
+2026-11-21 | claude | T2.12 | blocked | publishing model weights to a public GitHub release is outward-facing; awaiting owner. Atlas backend is the default until then

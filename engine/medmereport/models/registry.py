@@ -60,6 +60,13 @@ class Asset:
     bundle: str  # assets needed together, e.g. "atlas-ho"
 
 
+# ONNX exports produced by scripts/convert_synthseg.py, published as GitHub release assets (pinned by sha256).
+_GH_MODELS = "https://github.com/vkpriyesh/medmereport/releases/download/models-synthseg-2.0/"
+SYNTHSEG_LICENCE = "Apache-2.0 (SynthSeg code; weights distributed with it; no separate weights licence stated)"
+SYNTHSEG_ATTRIBUTION = (
+    "SynthSeg 2.0, B. Billot et al., Medical Image Analysis 2023; PNAS 2023. https://github.com/BBillot/SynthSeg"
+)
+
 ASSETS: dict[str, Asset] = {
     a.name: a
     for a in (
@@ -106,6 +113,42 @@ ASSETS: dict[str, Asset] = {
             attribution=HO_ATTRIBUTION,
             description="Harvard-Oxford subcortical atlas, max-probability thr0, 1 mm (21 labels)",
             bundle="atlas-ho",
+        ),
+        *(
+            Asset(
+                name=f"synthseg-{kind}",
+                filename=f"synthseg/{fname}",
+                url=_GH_MODELS + fname,
+                sha256=sha,
+                size=size,
+                licence=SYNTHSEG_LICENCE,
+                attribution=SYNTHSEG_ATTRIBUTION,
+                description=desc,
+                bundle="synthseg",
+            )
+            for kind, fname, sha, size, desc in (
+                (
+                    "seg",
+                    "synthseg_2.0.onnx",
+                    "e5dc620883bfae1355e9ee44c366f19e7086aef149a8c6848be6fb23607b2bda",
+                    53_033_940,
+                    "SynthSeg 2.0 whole-brain segmentation (ONNX, CPU)",
+                ),
+                (
+                    "parc",
+                    "synthseg_parc_2.0.onnx",
+                    "9f72a2789ecf5391c10fe581507942ee3b45265b397c246c640b8a50900d71f8",
+                    53_090_350,
+                    "SynthSeg 2.0 cortical parcellation (ONNX, CPU)",
+                ),
+                (
+                    "robust",
+                    "synthseg_robust_2.0.onnx",
+                    "c613ae72e3cc8bfb1c626f0cef83139f92e085815245a5f1c7a91954a7196a40",
+                    214_380_627,
+                    "SynthSeg 2.0 robust model for thick-slice scans (ONNX, CPU)",
+                ),
+            )
         ),
     )
 }

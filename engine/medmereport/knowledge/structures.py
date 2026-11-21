@@ -72,6 +72,7 @@ BRAIN: dict[str, tuple[str, Group, bool]] = {
     "fourth_ventricle": ("ventricles", "ventricle", True),
     "corpus_callosum": ("white_matter", "hemi", False),
     "cerebral_white_matter": ("white_matter", "deep", True),
+    "cerebral_cortex": ("white_matter", "hemi", False),  # unparcellated cortical ribbon (backend without parcellation)
     # cerebellum / brainstem
     "cerebellum_hemi": ("cerebellum", "cerebellum", False),
     "cerebellar_vermis": ("cerebellum", "cerebellum", False),
