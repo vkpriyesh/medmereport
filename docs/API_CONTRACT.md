@@ -53,3 +53,20 @@ The password travels only in this request body to the worker process. It is neve
 
 ## 4. Codes and i18n
 Error codes, stage names and sequence/region ids are stable identifiers. The UI translates them, so the engine never sends prose that needs translating except `msg` progress text (English, optional).
+
+## 5. 3D model artifacts (M2+)
+Produced by a model pipeline job (`POST /api/studies/{id}/model {pipeline?: "auto"}` → `JobInfo`; result `{model: "model/"}`), served from the study files route:
+
+- `model/scene.glb`: one glTF 2.0 binary.
+  - Every clickable region is a node named `{hemi}__{structure}` (`L__hippocampus`, `M__pons`), where `hemi` ∈ `L|R|M`.
+  - Non-region layers use reserved prefixes: `V__<name>` for vessels (`V__cow`, `V__neck`), `H__skin` for the body/head surface, `B__<name>` for bones.
+  - Coordinates are millimetres in **viewer space**: X = patient Left, Y = Superior, Z = Anterior (right-handed; converted from LPS by `geometry/space.py`).
+  - No materials and no normals: the UI owns the appearance and computes normals.
+  - Meshopt compression is optional; flagged by `extensionsUsed`.
+- `model/regions.json`: `{ "backend", "licence", "caveats": [..], "regions": [{ "key": "L|hippocampus", "structure", "hemi", "code", "group": "hemi_L|hemi_R|cerebellum|brainstem|deep|vessel|body", "inner": bool, "centroid": [x,y,z] }] }` (centroid in viewer space).
+- `model/stats.json`: `{ "summary": {Measurement..}, "regions": { "L|hippocampus": { "measurements": [Measurement], "thumbs": [{ "view": "axial|sagittal|coronal", "img": "model/thumbs/…jpg", "series": "s003"|null, "slice": 12 }] } } }`.
+  - `Measurement` is defined in `core/models.py` and always carries `method` + `caveats`.
+- Optional label maps for the 2D viewer: `series/{id}/L###.png`, with `meta.labels = true` and `meta.labelTable = {code: "L|hippocampus"}`.
+- `model/status.json`: `{ "pipeline", "version", "created", "warnings": [] }`.
+
+The structure vocabulary (`structure` ids, lobes and groups) and the anatomy knowledge base live in `engine/medmereport/knowledge/` and are served at `GET /api/knowledge` (same JSON for every study).
