@@ -1,0 +1,52 @@
+# --- NEVER commit medical data (defence in depth; tests use synthetic fixtures generated at test time) ---
+*.dcm
+*.DCM
+DICOMDIR
+*.nii
+*.nii.gz
+*.nrrd
+*.mha
+*.mhd
+*.enc
+burn.lock
+dcmdata.zip
+container.zip
+/dicom/
+/DICOM/
+/data-private/
+workspace/
+studies/
+*.glb
+!web/public/demo/*.glb
+patient_stats.json
+study.json
+
+# --- Python ---
+.venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# --- Node / web ---
+node_modules/
+web/dist/
+.vite/
+
+# --- Models (downloaded at runtime, never committed) ---
+models/
+*.onnx
+*.pt
+*.pth
+*.h5
+
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
