@@ -143,12 +143,17 @@ def create_app(*, port: int, token: str, session: SessionTemp, dev_origins: tupl
     app.include_router(api)
     from medmereport.core.studies import StudyStore
     from medmereport.server.routes_fs import router as fs_router
+    from medmereport.server.routes_knowledge import router as knowledge_router
     from medmereport.server.routes_studies import make_router as studies_router
 
     store = StudyStore(session.path)
     app.state.store = store
     app.include_router(fs_router)
+    app.include_router(knowledge_router)
     app.include_router(studies_router(jobs, store))
+    from medmereport.server.routes_model import make_router as model_router
+
+    app.include_router(model_router(jobs, store))
     app.state.register_router = app.include_router  # extension point for feature routers
 
     # ---- static SPA ----
