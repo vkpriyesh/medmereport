@@ -6,6 +6,7 @@
   import Import from './routes/Import.svelte'
   import Study from './routes/Study.svelte'
   import View from './routes/View.svelte'
+  import Model3D from './routes/Model3DLazy.svelte'
   import { MOCK } from './lib/api/endpoints'
   import { bootstrapSession } from './lib/api/client'
   import { route, resolve } from './lib/router.svelte'
@@ -23,6 +24,7 @@
     { pattern: '/', component: Home },
     { pattern: '/import', component: Import },
     { pattern: '/study/:id', component: Study },
+    { pattern: '/study/:id/3d', component: Model3D, wide: true },
     { pattern: '/study/:id/view', component: View, wide: true },
     { pattern: '/study/:id/view/:seriesId', component: View, wide: true },
     { pattern: '/study/:id/sagittal', component: View, props: { preset: 'sagittal' }, wide: true },

@@ -7,6 +7,8 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { deflateSync } from 'node:zlib'
+import { LABEL_NAMES, LABEL_TABLE, buildModel, labelCodeLPS } from './mock-model.mjs'
+import { KNOWLEDGE } from './mock-knowledge.mjs'
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'mock')
 const STUDY = 'phantom'
@@ -49,7 +51,8 @@ const CONTRAST = {
   T2:    [0, 170, 15, 245, 140, 95, 245, 60, 120, 200],
   FLAIR: [0, 160, 15, 20, 150, 115, 20, 70, 110, 120],
 }
-const LABELS = { 1: 'Left cerebral hemisphere (synthetic)', 2: 'Right cerebral hemisphere (synthetic)', 3: 'Lateral ventricles (synthetic)', 4: 'Brainstem & spinal cord (synthetic)', 5: 'Cerebellum (synthetic)' }
+// label codes = the synthetic 3D model's region codes (model/regions.json), so 3D → 2D `hl=` links line up
+const LABELS = LABEL_NAMES
 
 /** Tissue + label code at LPS point (mm). +x = patient left, +y = posterior, +z = superior. */
 function tissue(x, y, z) {
@@ -58,21 +61,21 @@ function tissue(x, y, z) {
     if (rHead > 0.95) return [T.FAT, 0]
     if (rHead > 0.88) return [T.BONE, 0]
     if (rHead > 0.85) return [T.CSF, 0]
-    for (const s of [-1, 1]) if (((x - s * 11) / 6) ** 2 + ((y + 2) / 24) ** 2 + ((z - 18) / 9) ** 2 < 1) return [T.VENT, 3]
-    if (z < 2 && Math.hypot(x, y - 22) < 11) return [T.WM, 4]
+    for (const s of [-1, 1]) if (((x - s * 11) / 6) ** 2 + ((y + 2) / 24) ** 2 + ((z - 18) / 9) ** 2 < 1) return [T.VENT, labelCodeLPS(x, y, z, 'vent')]
+    if (z < 2 && Math.hypot(x, y - 22) < 11) return [T.WM, labelCodeLPS(x, y, z, 'stem')]
     const c = (x / 42) ** 2 + ((y - 58) / 22) ** 2 + ((z + 22) / 18) ** 2
-    if (c < 1) return [c > 0.55 + 0.12 * Math.sin(z * 1.4) ? T.GM : T.WM, 5]
+    if (c < 1) return [c > 0.55 + 0.12 * Math.sin(z * 1.4) ? T.GM : T.WM, labelCodeLPS(x, y, z, 'cereb')]
     const rb = Math.sqrt((x / 66) ** 2 + ((y - 5) / 85) ** 2 + ((z - 12) / 70) ** 2)
     if (rb > 1 || z < -30) return [z < -18 ? T.MUSCLE : T.CSF, 0]
     if (Math.abs(x) < 1.3 && rb > 0.35) return [T.CSF, 0] // midline fissure
     const a = Math.atan2(y, x), e = Math.atan2(z, Math.hypot(x, y))
     const gyri = 0.8 + 0.055 * Math.sin(9 * a) * Math.sin(7 * e) + 0.03 * Math.sin(17 * a + 5 * e)
-    return [rb > gyri ? T.GM : T.WM, x >= 0 ? 1 : 2]
+    return [rb > gyri ? T.GM : T.WM, labelCodeLPS(x, y, z, 'hemi')]
   }
   if (z < -20 && z > -160) {
     if (Math.hypot(x / 52, (y - 12) / 58) < 1) {
       const d = Math.hypot(x, y - 25)
-      if (d < 6) return [T.WM, 4]
+      if (d < 6) return [T.WM, labelCodeLPS(x, y, -60, 'stem')]
       if (d < 9) return [T.CSF, 0]
       const phase = (((z + 160) % 22) + 22) % 22
       if (Math.abs(x) < 15 && y > -4 && y < 15) return [phase < 3.5 ? T.DISC : T.MARROW, 0]
@@ -146,7 +149,7 @@ for (const s of SERIES) {
     id: s.id, title: s.title, modality: 'MR', sequence: s.seq, plane: s.plane, region: 'brain', role: 'primary',
     n: s.n, ext: 'png', w: N, h: N, rows: N, cols: N, pixelSpacing: [+PS.toFixed(4), +PS.toFixed(4)], thickness: s.thickness,
     TE: s.TE, TR: s.TR, seriesNumber: s.num, desc: s.desc, orientation: s.o, slices, window: { lo: 0, hi: 255 },
-    labels: !!s.labels, ...(s.labels ? { labelNames: LABELS } : {}),
+    labels: !!s.labels, ...(s.labels ? { labelNames: LABELS, labelTable: LABEL_TABLE } : {}),
   })
   seriesInfo.push({ id: s.id, modality: 'MR', description: s.desc, body_part: 'head', plane: s.plane, sequence: s.seq, role: 'primary',
     n_images: s.n, rows: N, cols: N, pixel_spacing: [PS, PS], slice_thickness: s.thickness })
@@ -230,6 +233,20 @@ for (const s of SERIES) {
   seriesInfo.push({ id, modality: 'OT', description: 'Synthetic photo', body_part: 'unknown', plane: 'unknown', sequence: 'PHOTO', role: 'photo',
     n_images: n, rows: 240, cols: 320, pixel_spacing: null, slice_thickness: null })
   process.stdout.write(`${id} photo: ${n} frames\n`)
+}
+
+// ---- synthetic 3D model (model/*) + knowledge base ----
+{
+  const ax = SERIES.find((x) => x.id === 's001'), sag = SERIES.find((x) => x.id === 's003')
+  const nearest = (arr, v) => arr.reduce((bi, a, i) => (Math.abs(a - v) < Math.abs(arr[bi] - v) ? i : bi), 0)
+  const r = buildModel(join(OUT, 'studies', STUDY, 'files'), {
+    axialSeries: ax.id, sagSeries: sag.id, ext: 'png',
+    axialSlice: (y) => nearest(ax.along, y), // viewer Y (superior) = LPS z
+    sagSlice: (x) => nearest(sag.along, x), // viewer X (left) = LPS x
+  })
+  writeJSON(join(OUT, 'knowledge.json'), KNOWLEDGE)
+  process.stdout.write(`model: ${r.nodes} nodes, ${r.tris} triangles (synthetic)
+`)
 }
 
 const study = {

@@ -17,6 +17,11 @@
   let hoverName = $state<string | null>(null)
   let layoutRef = $state<ViewerLayout | null>(null)
 
+  // deep link from the 3D region card: ?slice=N&hl=CODE (read once; the URL keeps them until the series changes)
+  const q = new URLSearchParams(location.search)
+  const qSlice = q.has('slice') && Number.isFinite(+q.get('slice')!) ? +q.get('slice')! : null
+  let hl = $state(Number.isInteger(+(q.get('hl') ?? '')) && +(q.get('hl') ?? '') > 0 ? +q.get('hl')! : 0)
+
   const studyId = $derived(params.id)
   const urlSeries = $derived(params.seriesId)
   $effect(() => {
@@ -54,7 +59,8 @@
     untrack(() => { if (s && layoutRef && am && s !== am.id) layoutRef.show(s) })
   })
 
-  const labelName = (m: SeriesMeta, code: number) => m.labelNames?.[String(code)] ?? null
+  const labelName = (m: SeriesMeta, code: number) => m.labelNames?.[String(code)] ?? m.labelTable?.[String(code)] ?? null
+  const hlName = $derived(hl && am ? labelName(am, hl) : null)
   const paneSlots = (id: string) => (activeInfo && activeInfo.panes.length > 1 ? activeInfo.panes.flatMap((p, i) => (p.seriesId === id ? [i + 1] : [])) : [])
 </script>
 
@@ -106,6 +112,8 @@
           bind:this={layoutRef}
           {metas} {seriesBase} {initialLayout} {labelName}
           initialSeries={params.seriesId ?? null}
+          initialIndex={qSlice}
+          highlight={hl}
           onchange={(s) => (activeInfo = s)}
           onhoverlabel={(n) => (hoverName = n)}
         />
@@ -116,6 +124,13 @@
       <div class="ph">{t('view.about')}</div>
       {#if am}
         <div class="ib">
+          {#if hl}
+            <div class="hl" role="status">
+              <span><span class="k">{t('view.hl.k')}</span> {hlName ?? t('view.hl.code', { code: hl })}</span>
+              <button type="button" class="btn sm" onclick={() => (hl = 0)}>{t('view.hl.clear')}</button>
+            </div>
+            {#if !am.labels}<p class="note">{t('view.hl.noLabels')}</p>{/if}
+          {/if}
           {#if am.labels}
             <div class="hoverbox" aria-live="polite">
               {#if hoverName}<div class="k">{t('view.hover.under')}</div><div class="v">{hoverName}</div>
@@ -206,6 +221,10 @@
   .ib p { margin: 0 0 8px; color: var(--text-2); font-size: 13px; }
   .facts { font-family: var(--mono); font-size: 12px !important; }
   .note { padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,.04); border: 1px solid var(--line); }
+  .hl { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0 8px; padding: 9px 12px; border-radius: 12px;
+    background: rgba(94,234,212,.1); border: 1px solid rgba(94,234,212,.35); font-size: 13px; font-weight: 600; }
+  .hl .k { display: block; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); font-weight: 600; }
+  .btn.sm { padding: 5px 10px; font-size: 12px; }
   .hoverbox { margin: 6px 0 8px; padding: 11px 13px; border-radius: 12px; background: rgba(94,234,212,.07); border: 1px solid rgba(94,234,212,.2); min-height: 58px; }
   .hoverbox .k { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); font-weight: 600; }
   .hoverbox .v { font-size: 15px; font-weight: 600; margin-top: 3px; }

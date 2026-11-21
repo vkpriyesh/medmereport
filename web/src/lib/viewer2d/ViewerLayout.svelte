@@ -17,6 +17,10 @@
     /** URL of a series folder (files are `${base}/000.webp`). */
     seriesBase: (seriesId: string) => string
     initialSeries?: string | null
+    /** Slice to open `initialSeries` at (e.g. from a `?slice=` deep link). */
+    initialIndex?: number | null
+    /** Label code to highlight in every pane (e.g. from a `?hl=` deep link); 0 = none. */
+    highlight?: number
     initialLayout?: LayoutN
     layouts?: LayoutN[]
     labelName?: (meta: SeriesMeta, code: number) => string | null
@@ -25,7 +29,7 @@
     onhoverlabel?: (name: string | null) => void
   }
   let {
-    metas, seriesBase, initialSeries = null, initialLayout = 1, layouts = [1, 2, 3, 4],
+    metas, seriesBase, initialSeries = null, initialIndex = null, highlight = 0, initialLayout = 1, layouts = [1, 2, 3, 4],
     labelName, labelColor = defaultLabelColor, onchange, onhoverlabel,
   }: Props = $props()
 
@@ -50,7 +54,9 @@
     if (!metas.length || untrack(() => panes.length)) return
     untrack(() => {
       const first = (initialSeries && byId.get(initialSeries)) || metas[0]
-      panes = [mk(first)]
+      const p0 = mk(first)
+      if (initialIndex !== null && first.id === initialSeries && initialIndex >= 0 && initialIndex < first.n) p0.index = Math.round(initialIndex)
+      panes = [p0]
       setLayout(Math.min(initialLayout, metas.length) as LayoutN)
     })
   })
@@ -198,6 +204,7 @@
           invert={p.invert}
           {tool}
           showLabels={labelsOn}
+          {highlight}
           {labelColor}
           active={i === active && panes.length > 1}
           paneLabel={panes.length > 1 ? t('viewer.paneN', { n: i + 1 }) : ''}

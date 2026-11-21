@@ -31,3 +31,8 @@ export function t(key: string, vars: Record<string, string | number> = {}): stri
   const s = dicts[i18n.lang]?.[key] ?? en[key as keyof typeof en] ?? key
   return s.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? `{${k}}`))
 }
+
+/** Whether a key exists (in the current language or English). */
+export function has(key: string): boolean {
+  return key in (dicts[i18n.lang] ?? {}) || key in en
+}

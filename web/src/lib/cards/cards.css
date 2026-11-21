@@ -1,0 +1,47 @@
+/* Shared typography for region cards (scoped under .cardx). */
+.cardx .ihead { padding: 18px 20px 10px; position: relative; }
+.cardx .ihead .kick { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; padding-right: 40px; }
+.cardx .ihead h2 { margin: 0; font-size: 22px; letter-spacing: -0.02em; line-height: 1.2; font-weight: 650; }
+.cardx .ihead .tag { margin: 8px 0 0; color: var(--text-2); font-size: 13.5px; }
+.cardx .ihead .x { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; padding: 0; }
+.cardx .ibody { padding: 0 20px 20px; }
+.cardx h4 { margin: 20px 0 8px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3); font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.cardx h4::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.cardx .ibody > p, .cardx .ibody .p { margin: 0 0 8px; color: var(--text-2); font-size: 13.5px; line-height: 1.6; }
+.cardx ul.dots { margin: 0; padding: 0; list-style: none; }
+.cardx ul.dots li { position: relative; padding: 4px 0 4px 18px; color: var(--text-2); font-size: 13px; line-height: 1.5; }
+.cardx ul.dots li::before { content: ''; position: absolute; left: 3px; top: 12px; width: 6px; height: 6px; border-radius: 2px; background: var(--accent); opacity: .7; transform: rotate(45deg); }
+.cardx ul.dots.clin li::before { background: var(--danger); }
+.cardx ul.dots.conn li::before { background: var(--accent-2); }
+.cardx .fact { margin-top: 16px; padding: 14px 16px; border-radius: 12px; background: linear-gradient(135deg, rgba(167,139,250,.12), rgba(56,189,248,.08)); border: 1px solid rgba(167,139,250,.25); font-size: 13px; line-height: 1.55; }
+.cardx .fact b { display: block; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: #c4b5fd; margin-bottom: 4px; }
+.cardx .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 12.5px; margin: 0; }
+.cardx .kv dt { color: var(--text-3); }
+.cardx .kv dd { margin: 0; color: var(--text-2); }
+.cardx .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cardx .cta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.cardx .cta .btn { font-size: 13px; padding: 8px 13px; }
+.cardx .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cardx .chip .dot { box-shadow: none; }
+.cardx button.chip { cursor: pointer; }
+.cardx button.chip:hover { border-color: var(--line-2); color: var(--text); }
+.cardx .note { padding: 12px 14px; border-radius: 12px; background: rgba(251,191,36,.07); border: 1px solid rgba(251,191,36,.22); font-size: 12px; color: #fde68a; line-height: 1.55; margin-top: 16px; }
+.cardx .note b { color: #fef3c7; }
+.cardx .how { counter-reset: s; list-style: none; margin: 0; padding: 0; }
+.cardx .how li { position: relative; padding: 4px 0 4px 28px; color: var(--text-2); font-size: 13px; line-height: 1.5; }
+.cardx .how li::before { counter-increment: s; content: counter(s); position: absolute; left: 0; top: 5px; width: 18px; height: 18px; border-radius: 50%; font-size: 10.5px; display: grid; place-items: center; border: 1px solid var(--line-2); color: var(--accent); font-weight: 600; }
+.cardx .thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.cardx .thumbs a, .cardx .thumbs figure { position: relative; display: block; margin: 0; border-radius: 10px; overflow: hidden; background: #000; aspect-ratio: 1; box-shadow: 0 0 0 1px var(--line); transition: box-shadow .2s, transform .2s; }
+.cardx .thumbs a:hover, .cardx .thumbs a:focus-visible { box-shadow: 0 0 0 1px var(--accent), 0 8px 24px -8px rgba(94,234,212,.5); transform: translateY(-2px); }
+.cardx .thumbs img { width: 100%; height: 100%; object-fit: contain; }
+.cardx .thumbs span { position: absolute; left: 6px; bottom: 6px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; background: rgba(0,0,0,.65); padding: 2px 6px; border-radius: 5px; color: var(--text); }
+.cardx .lobes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cardx .lobe-card { text-align: left; padding: 12px; border-radius: 12px; background: rgba(255,255,255,.035); border: 1px solid var(--line); cursor: pointer; position: relative; overflow: hidden; color: inherit; }
+.cardx .lobe-card:hover { border-color: rgba(148,170,220,.35); background: rgba(255,255,255,.06); }
+.cardx .lobe-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--c); }
+.cardx .lobe-card b { display: block; font-size: 13px; font-weight: 600; }
+.cardx .lobe-card span { display: block; font-size: 11.5px; color: var(--text-3); margin-top: 3px; line-height: 1.4; }
+.cardx .disc { display: flex; gap: 8px; align-items: flex-start; margin: 18px 0 0; padding: 10px 12px; border-radius: 10px; font-size: 12px; color: var(--text-2); background: rgba(255,255,255,.03); border: 1px solid var(--line); }
+.cardx .empty { color: var(--text-3); font-size: 13px; }
+.cardx .tour-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; gap: 8px; }
+@media (max-width: 420px) { .cardx .metrics, .cardx .lobes { grid-template-columns: 1fr; } }

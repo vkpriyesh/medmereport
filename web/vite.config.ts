@@ -3,6 +3,8 @@ import { svelte } from '@sveltejs/vite-plugin-svelte'
 
 // Dev: `medmereport serve --dev --port 8765` then `npm run dev` (proxies /api to the engine).
 // Build: emits into the engine package so `uv tool install git+…` ships the UI without Node.
+// minimal Node typing (avoids adding @types/node just for one env lookup)
+declare const process: { env: Record<string, string | undefined> }
 const ENGINE = `http://127.0.0.1:${process.env.MMR_PORT ?? '8765'}`
 
 export default defineConfig({

@@ -61,9 +61,7 @@
       <div class="ctas">
         {#if hasSagittal}<a class="btn" href="/study/{sid}/sagittal" use:link><Icon name="side" size={16} />{t('study.sagittal')}</a>{/if}
         {#if study.series.length}<a class="btn primary" href="/study/{sid}/view/{encodeURIComponent(study.series[0].id)}" use:link>{t('study.openViewer')}<Icon name="arrow" size={16} /></a>{/if}
-        <button type="button" class="btn soon" aria-disabled="true" aria-describedby="soon-3d" title={t('study.3d.soon')}>
-          <Icon name="cube" size={16} />{t('study.3d')}<span id="soon-3d" class="badge">{t('common.soon')}</span>
-        </button>
+        <a class="btn" href="/study/{sid}/3d" use:link title={t('study.3d.title')}><Icon name="cube" size={16} />{t('study.3d')}</a>
       </div>
     </div>
     <p class="disc"><Icon name="info" size={15} /> {t('study.disclaimer')}</p>
@@ -103,9 +101,6 @@
   .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .who { font-size: 13px; }
   .ctas { display: flex; gap: 10px; flex-wrap: wrap; }
-  .soon { opacity: .55; cursor: not-allowed; }
-  .soon:hover { background: rgba(255,255,255,.04); }
-  .badge { font-size: 10.5px; padding: 1px 7px; border-radius: 99px; background: rgba(255,255,255,.08); color: var(--text-2); }
   .disc { display: flex; align-items: center; gap: 8px; margin: 18px 0 0; padding: 10px 14px; border-radius: 12px; font-size: 13px; color: var(--text-2);
     background: rgba(251,191,36,.06); border: 1px solid rgba(251,191,36,.2); }
   .disc :global(svg) { color: var(--warn); flex: none; }

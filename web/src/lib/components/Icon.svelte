@@ -34,6 +34,13 @@
     check: '<path d="M5 12l5 5L20 7"/>',
     arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
     back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+    rotate: '<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>',
+    camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+    close: '<path d="M6 6l12 12M18 6 6 18"/>',
+    cut: '<path d="M3 12h18"/><path d="M7 5h10M7 19h10" opacity=".5"/>',
+    sliders: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+    card: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/>',
     side: '<path d="M8 3c-2.5 1.5-4 4.5-4 8 0 5 3.5 9 8 10 4.5-1 8-5 8-10 0-3.5-1.5-6.5-4-8"/><path d="M12 3v18"/>',
   } as const
   export type IconName = keyof typeof ICONS
