@@ -69,3 +69,9 @@ strict = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 timeout = 300
+
+[[tool.mypy.overrides]]
+# SimpleITK / scikit-image / trimesh ship no type information
+module = ["medmereport.geometry.*", "medmereport.segment.*", "medmereport.pipelines.*", "medmereport.analysis.*"]
+disallow_untyped_calls = false
+warn_return_any = false
