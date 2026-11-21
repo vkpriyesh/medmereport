@@ -33,8 +33,12 @@ class IngestError(Exception):
 
 class PasswordRequired(IngestError):
     def __init__(self, adapter: str, hint: str = "") -> None:
-        super().__init__("password_required", "This disc is encrypted. Enter the password you were given.",
-                         adapter=adapter, hint=hint)
+        super().__init__(
+            "password_required",
+            "This disc is encrypted. Enter the password you were given.",
+            adapter=adapter,
+            hint=hint,
+        )
 
 
 class WrongPassword(IngestError):

@@ -18,6 +18,7 @@ All `/api/*` calls need the session cookie (set via `POST /api/session`). Unsafe
   - `no_images`
   - `unsupported`: suggest `medmereport diagnose`.
   - `too_large`
+  - `corrupt`: the archive or disc data is damaged (suggest copying the disc again).
 - On success `JobInfo.result = {study_id}`.
 
 The password travels only in this request body to the worker process. It is never logged, stored or echoed.

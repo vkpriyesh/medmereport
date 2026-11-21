@@ -141,6 +141,14 @@ def create_app(*, port: int, token: str, session: SessionTemp, dev_origins: tupl
         return StreamingResponse(stream(), media_type="text/event-stream", headers={"X-Accel-Buffering": "no"})
 
     app.include_router(api)
+    from medmereport.core.studies import StudyStore
+    from medmereport.server.routes_fs import router as fs_router
+    from medmereport.server.routes_studies import make_router as studies_router
+
+    store = StudyStore(session.path)
+    app.state.store = store
+    app.include_router(fs_router)
+    app.include_router(studies_router(jobs, store))
     app.state.register_router = app.include_router  # extension point for feature routers
 
     # ---- static SPA ----

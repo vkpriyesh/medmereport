@@ -62,8 +62,13 @@ def _worker(target: str, job_id: str, params: dict[str, Any], workdir: str, q: A
     except Cancelled:
         q.put(("cancelled",))
     except Exception as e:  # noqa: BLE001
-        # Only the exception type and a redacted message cross the boundary; tracebacks stay local.
-        q.put(("failed", f"{type(e).__name__}: {e}", traceback.format_exc()))
+        # Only a message and a stable error code cross the boundary; tracebacks stay local.
+        code = getattr(e, "code", None)
+        if code:
+            info = {k: v for k, v in getattr(e, "info", {}).items() if isinstance(v, (str, int, float, bool))}
+            q.put(("failed", str(e), "", {"code": code, **info}))
+        else:
+            q.put(("failed", f"{type(e).__name__}: {e}", traceback.format_exc(), {"code": "internal"}))
 
 
 @dataclass
@@ -135,6 +140,7 @@ class JobManager:
                     break
                 elif kind == "failed":
                     job.info.status, job.info.error = JobStatus.failed, msg[1]
+                    job.info.result = msg[3] if len(msg) > 3 else {"code": "internal"}
                     log.error("job %s failed: %s", job.info.id, msg[1])
                     self._emit(job, "failed", job.info.pct, msg[1], "error")
                     break

@@ -32,7 +32,11 @@ def phantom_volume(nz: int = 24, ny: int = 64, nx: int = 64, seed: int = 0) -> n
     vol[r_head <= 1] = 300  # scalp/skull-ish
     vol[r_brain <= 1] = 800  # brain
     for sx in (-1, 1):  # ventricles
-        r_v = ((z - cz) / (nz * 0.15)) ** 2 + ((y - cy) / (ny * 0.12)) ** 2 + ((x - cx - sx * nx * 0.08) / (nx * 0.05)) ** 2
+        r_v = (
+            ((z - cz) / (nz * 0.15)) ** 2
+            + ((y - cy) / (ny * 0.12)) ** 2
+            + ((x - cx - sx * nx * 0.08) / (nx * 0.05)) ** 2
+        )
         vol[r_v <= 1] = 150
     vol += rng.normal(0, 8, vol.shape).astype(np.float32)
     return np.clip(vol, 0, 4095).astype(np.uint16)
@@ -135,8 +139,16 @@ def write_series(
     return paths
 
 
-def write_xray(out: Path, *, modality: str = "CR", name: str = "XR0001", size: int = 256,
-               study_uid: str | None = None, body_part: str = "CHEST", view: str = "PA") -> Path:
+def write_xray(
+    out: Path,
+    *,
+    modality: str = "CR",
+    name: str = "XR0001",
+    size: int = 256,
+    study_uid: str | None = None,
+    body_part: str = "CHEST",
+    view: str = "PA",
+) -> Path:
     """Single-frame projection radiograph with a fake rib-cage-like pattern."""
     out.mkdir(parents=True, exist_ok=True)
     y, x = np.mgrid[0:size, 0:size].astype(np.float32)
@@ -144,8 +156,9 @@ def write_xray(out: Path, *, modality: str = "CR", name: str = "XR0001", size: i
     img -= 1200 * np.exp(-(((x - size * 0.7) / (size * 0.12)) ** 2 + ((y - size * 0.5) / (size * 0.3)) ** 2))
     img += 300 * (np.sin(y / size * 40) > 0.6)
     img = np.clip(img, 0, 4095).astype(np.uint16)
-    ds = _base(modality, CR_STORAGE if modality == "CR" else DX_STORAGE, study_uid or generate_uid(), generate_uid(),
-               FAKE_NAME)
+    ds = _base(
+        modality, CR_STORAGE if modality == "CR" else DX_STORAGE, study_uid or generate_uid(), generate_uid(), FAKE_NAME
+    )
     ds.SOPInstanceUID = generate_uid()
     ds.file_meta.MediaStorageSOPInstanceUID = ds.SOPInstanceUID
     ds.SeriesNumber = 1
@@ -188,10 +201,30 @@ def write_study(out: Path, *, extensionless: bool = True) -> dict[str, list[Path
     """A small multi-series MR head study (axial T1, axial FLAIR, sagittal T1) in one StudyInstanceUID."""
     study = generate_uid()
     return {
-        "ax_t1": write_series(out, study_uid=study, series_number=1, description="AX T1 SYNTH",
-                              extensionless=extensionless, echo_time=10, repetition_time=500),
-        "ax_flair": write_series(out, study_uid=study, series_number=2, description="AX FLAIR SYNTH",
-                                 extensionless=extensionless, echo_time=94, repetition_time=7000),
-        "sag_t1": write_series(out, study_uid=study, series_number=3, plane="sagittal",
-                               description="SAG T1 SYNTH", extensionless=extensionless),
+        "ax_t1": write_series(
+            out,
+            study_uid=study,
+            series_number=1,
+            description="AX T1 SYNTH",
+            extensionless=extensionless,
+            echo_time=10,
+            repetition_time=500,
+        ),
+        "ax_flair": write_series(
+            out,
+            study_uid=study,
+            series_number=2,
+            description="AX FLAIR SYNTH",
+            extensionless=extensionless,
+            echo_time=94,
+            repetition_time=7000,
+        ),
+        "sag_t1": write_series(
+            out,
+            study_uid=study,
+            series_number=3,
+            plane="sagittal",
+            description="SAG T1 SYNTH",
+            extensionless=extensionless,
+        ),
     }
