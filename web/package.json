@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:mock": "node scripts/make-mock-study.mjs && vite --mode mock",
     "build": "vite build",
+    "postbuild": "node scripts/strip-mock.mjs",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
     "gen:api": "cd ../engine && uv run medmereport openapi --out ../web/openapi.json && cd ../web && openapi-typescript openapi.json -o src/lib/api/schema.d.ts",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "mock:data": "node scripts/make-mock-study.mjs"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.3",

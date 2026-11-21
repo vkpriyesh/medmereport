@@ -274,6 +274,246 @@
      }
     }
    }
+  },
+  "/api/fs/roots": {
+   "get": {
+    "summary": "Roots",
+    "operationId": "roots_api_fs_roots_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/Root"
+         },
+         "type": "array",
+         "title": "Response Roots Api Fs Roots Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/fs/list": {
+   "get": {
+    "summary": "List Dir",
+    "operationId": "list_dir_api_fs_list_get",
+    "parameters": [
+     {
+      "name": "path",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "title": "Path"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Listing"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/inspect": {
+   "post": {
+    "summary": "Inspect",
+    "operationId": "inspect_api_inspect_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/InspectIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/InspectOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/import": {
+   "post": {
+    "summary": "Start Import",
+    "operationId": "start_import_api_import_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ImportIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JobInfo"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/studies": {
+   "get": {
+    "summary": "Studies",
+    "operationId": "studies_api_studies_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/StudyInfo"
+         },
+         "type": "array",
+         "title": "Response Studies Api Studies Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/studies/{study_id}": {
+   "get": {
+    "summary": "Study",
+    "operationId": "study_api_studies__study_id__get",
+    "parameters": [
+     {
+      "name": "study_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Study Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/StudyInfo"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "summary": "Delete Study",
+    "operationId": "delete_study_api_studies__study_id__delete",
+    "parameters": [
+     {
+      "name": "study_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Study Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "boolean"
+         },
+         "title": "Response Delete Study Api Studies  Study Id  Delete"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -337,6 +577,55 @@
     "type": "object",
     "title": "DemoJobIn"
    },
+   "Entry": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "path": {
+      "type": "string",
+      "title": "Path"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "dir",
+       "file"
+      ],
+      "title": "Kind"
+     },
+     "size": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Size"
+     },
+     "hint": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Hint"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "path",
+     "kind"
+    ],
+    "title": "Entry"
+   },
    "HTTPValidationError": {
     "properties": {
      "detail": {
@@ -367,6 +656,94 @@
      "version"
     ],
     "title": "Health"
+   },
+   "ImportIn": {
+    "properties": {
+     "path": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Path"
+     },
+     "password": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 512
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Password"
+     },
+     "remember": {
+      "type": "boolean",
+      "title": "Remember",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "path"
+    ],
+    "title": "ImportIn"
+   },
+   "InspectIn": {
+    "properties": {
+     "path": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Path"
+     }
+    },
+    "type": "object",
+    "required": [
+     "path"
+    ],
+    "title": "InspectIn"
+   },
+   "InspectOut": {
+    "properties": {
+     "adapter": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Adapter"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "encrypted": {
+      "type": "boolean",
+      "title": "Encrypted",
+      "default": false
+     },
+     "confidence": {
+      "type": "number",
+      "title": "Confidence",
+      "default": 0
+     },
+     "notes": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Notes",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "adapter",
+     "label"
+    ],
+    "title": "InspectOut"
    },
    "JobInfo": {
     "properties": {
@@ -452,6 +829,44 @@
     ],
     "title": "JobStatus"
    },
+   "Listing": {
+    "properties": {
+     "path": {
+      "type": "string",
+      "title": "Path"
+     },
+     "parent": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Parent"
+     },
+     "entries": {
+      "items": {
+       "$ref": "#/components/schemas/Entry"
+      },
+      "type": "array",
+      "title": "Entries"
+     },
+     "truncated": {
+      "type": "boolean",
+      "title": "Truncated",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "path",
+     "parent",
+     "entries"
+    ],
+    "title": "Listing"
+   },
    "ProgressEvent": {
     "properties": {
      "seq": {
@@ -497,6 +912,141 @@
     ],
     "title": "ProgressEvent"
    },
+   "Root": {
+    "properties": {
+     "path": {
+      "type": "string",
+      "title": "Path"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "drive",
+       "home",
+       "removable",
+       "folder"
+      ],
+      "title": "Kind"
+     }
+    },
+    "type": "object",
+    "required": [
+     "path",
+     "label",
+     "kind"
+    ],
+    "title": "Root"
+   },
+   "SeriesInfo": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "modality": {
+      "type": "string",
+      "title": "Modality"
+     },
+     "description": {
+      "type": "string",
+      "title": "Description",
+      "default": ""
+     },
+     "body_part": {
+      "type": "string",
+      "title": "Body Part",
+      "default": "unknown"
+     },
+     "plane": {
+      "type": "string",
+      "enum": [
+       "axial",
+       "sagittal",
+       "coronal",
+       "oblique",
+       "projection",
+       "unknown"
+      ],
+      "title": "Plane",
+      "default": "unknown"
+     },
+     "sequence": {
+      "type": "string",
+      "title": "Sequence",
+      "default": "unknown"
+     },
+     "role": {
+      "type": "string",
+      "enum": [
+       "primary",
+       "derived",
+       "mip",
+       "localizer",
+       "photo",
+       "document"
+      ],
+      "title": "Role",
+      "default": "primary"
+     },
+     "n_images": {
+      "type": "integer",
+      "title": "N Images",
+      "default": 0
+     },
+     "rows": {
+      "type": "integer",
+      "title": "Rows",
+      "default": 0
+     },
+     "cols": {
+      "type": "integer",
+      "title": "Cols",
+      "default": 0
+     },
+     "pixel_spacing": {
+      "anyOf": [
+       {
+        "prefixItems": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "number"
+         }
+        ],
+        "type": "array",
+        "maxItems": 2,
+        "minItems": 2
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pixel Spacing"
+     },
+     "slice_thickness": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Slice Thickness"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "modality"
+    ],
+    "title": "SeriesInfo"
+   },
    "SessionIn": {
     "properties": {
      "token": {
@@ -509,6 +1059,63 @@
      "token"
     ],
     "title": "SessionIn"
+   },
+   "StudyInfo": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "adapter": {
+      "type": "string",
+      "title": "Adapter"
+     },
+     "display_name": {
+      "type": "string",
+      "title": "Display Name",
+      "default": ""
+     },
+     "study_date": {
+      "type": "string",
+      "title": "Study Date",
+      "default": ""
+     },
+     "description": {
+      "type": "string",
+      "title": "Description",
+      "default": ""
+     },
+     "modalities": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Modalities",
+      "default": []
+     },
+     "series": {
+      "items": {
+       "$ref": "#/components/schemas/SeriesInfo"
+      },
+      "type": "array",
+      "title": "Series",
+      "default": []
+     },
+     "warnings": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Warnings",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "adapter"
+    ],
+    "title": "StudyInfo"
    },
    "ValidationError": {
     "properties": {

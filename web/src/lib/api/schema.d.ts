@@ -124,6 +124,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/fs/roots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Roots */
+        get: operations["roots_api_fs_roots_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fs/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Dir */
+        get: operations["list_dir_api_fs_list_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Inspect */
+        post: operations["inspect_api_inspect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Import */
+        post: operations["start_import_api_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/studies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Studies */
+        get: operations["studies_api_studies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/studies/{study_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Study */
+        get: operations["study_api_studies__study_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Study */
+        delete: operations["delete_study_api_studies__study_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -164,6 +267,22 @@ export interface components {
              */
             fail: boolean;
         };
+        /** Entry */
+        Entry: {
+            /** Name */
+            name: string;
+            /** Path */
+            path: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "dir" | "file";
+            /** Size */
+            size?: number | null;
+            /** Hint */
+            hint?: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -175,6 +294,45 @@ export interface components {
             ok: boolean;
             /** Version */
             version: string;
+        };
+        /** ImportIn */
+        ImportIn: {
+            /** Path */
+            path: string;
+            /** Password */
+            password?: string | null;
+            /**
+             * Remember
+             * @default false
+             */
+            remember: boolean;
+        };
+        /** InspectIn */
+        InspectIn: {
+            /** Path */
+            path: string;
+        };
+        /** InspectOut */
+        InspectOut: {
+            /** Adapter */
+            adapter: string | null;
+            /** Label */
+            label: string;
+            /**
+             * Encrypted
+             * @default false
+             */
+            encrypted: boolean;
+            /**
+             * Confidence
+             * @default 0
+             */
+            confidence: number;
+            /**
+             * Notes
+             * @default []
+             */
+            notes: string[];
         };
         /** JobInfo */
         JobInfo: {
@@ -212,6 +370,20 @@ export interface components {
          * @enum {string}
          */
         JobStatus: "queued" | "running" | "done" | "failed" | "cancelled";
+        /** Listing */
+        Listing: {
+            /** Path */
+            path: string;
+            /** Parent */
+            parent: string | null;
+            /** Entries */
+            entries: components["schemas"]["Entry"][];
+            /**
+             * Truncated
+             * @default false
+             */
+            truncated: boolean;
+        };
         /** ProgressEvent */
         ProgressEvent: {
             /** Seq */
@@ -234,10 +406,115 @@ export interface components {
             /** Ts */
             ts: number;
         };
+        /** Root */
+        Root: {
+            /** Path */
+            path: string;
+            /** Label */
+            label: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "drive" | "home" | "removable" | "folder";
+        };
+        /** SeriesInfo */
+        SeriesInfo: {
+            /** Id */
+            id: string;
+            /** Modality */
+            modality: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Body Part
+             * @default unknown
+             */
+            body_part: string;
+            /**
+             * Plane
+             * @default unknown
+             * @enum {string}
+             */
+            plane: "axial" | "sagittal" | "coronal" | "oblique" | "projection" | "unknown";
+            /**
+             * Sequence
+             * @default unknown
+             */
+            sequence: string;
+            /**
+             * Role
+             * @default primary
+             * @enum {string}
+             */
+            role: "primary" | "derived" | "mip" | "localizer" | "photo" | "document";
+            /**
+             * N Images
+             * @default 0
+             */
+            n_images: number;
+            /**
+             * Rows
+             * @default 0
+             */
+            rows: number;
+            /**
+             * Cols
+             * @default 0
+             */
+            cols: number;
+            /** Pixel Spacing */
+            pixel_spacing?: [
+                number,
+                number
+            ] | null;
+            /** Slice Thickness */
+            slice_thickness?: number | null;
+        };
         /** SessionIn */
         SessionIn: {
             /** Token */
             token: string;
+        };
+        /** StudyInfo */
+        StudyInfo: {
+            /** Id */
+            id: string;
+            /** Adapter */
+            adapter: string;
+            /**
+             * Display Name
+             * @default
+             */
+            display_name: string;
+            /**
+             * Study Date
+             * @default
+             */
+            study_date: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Modalities
+             * @default []
+             */
+            modalities: string[];
+            /**
+             * Series
+             * @default []
+             */
+            series: components["schemas"]["SeriesInfo"][];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
         };
         /** ValidationError */
         ValidationError: {
@@ -480,6 +757,207 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    roots_api_fs_roots_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Root"][];
+                };
+            };
+        };
+    };
+    list_dir_api_fs_list_get: {
+        parameters: {
+            query: {
+                path: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Listing"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    inspect_api_inspect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InspectIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InspectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_import_api_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    studies_api_studies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudyInfo"][];
+                };
+            };
+        };
+    };
+    study_api_studies__study_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                study_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudyInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_study_api_studies__study_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                study_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: boolean;
+                    };
                 };
             };
             /** @description Validation Error */

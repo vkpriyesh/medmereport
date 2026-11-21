@@ -27,23 +27,27 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 | T0.6 | Job manager: ProcessPool, progress events, cancel, SSE endpoint, OpenAPI export | E | T0.5 | `engine/medmereport/server/jobs.py` | Fake 3-stage job streams progress and cancels cleanly | done | claude |
 | T0.7 | OpenAPI → TS client generation + web app shell (routing, theme tokens, layout, i18n scaffold en/hi) | W | T0.6 | `web/src/` | UI shows engine status via generated client | done | claude |
 | T0.8 | Network egress guard test (socket monkeypatch) covering serve + process | Q | T0.5 | `engine/tests/security/` | Fails if any non-loopback connect occurs | done | claude |
-| T0.9 | `medmereport` CLI: serve (opens browser), process, doctor, purge, models, diagnose (de-identified file-tree + magic-bytes report for unknown discs) | E | T0.5 | `engine/medmereport/cli/` | `medmereport doctor` reports env, CPU, RAM, optional extras | doing | claude |
+| T0.9 | `medmereport` CLI: serve (opens browser), process, doctor, purge, models, diagnose (de-identified file-tree + magic-bytes report for unknown discs) | E | T0.5 | `engine/medmereport/cli/` | `medmereport doctor` reports env, CPU, RAM, optional extras | done | claude |
 
 ## M1 — Ingest & 2D viewing
 | ID | Task | Lane | Deps | Paths | Acceptance | Status | Owner |
 |---|---|---|---|---|---|---|---|
-| T1.1 | Synthetic fixture generator: builds all 5 container types from public sample DICOM (pydicom test files) and generated phantoms | Q | T0.1 | `engine/tests/fixtures/` | `pytest --gen-fixtures` creates dicomdir/dcmburner/radiant/loose/images samples, with no real PHI | todo | |
-| T1.2 | DICOM layer: sniffing (DICM + implicit VR), decoding (gdcm, openjpeg, rle), geometry, series grouping, multi-frame | I | T0.3 | `engine/medmereport/dicom/` | Decodes all codecs in fixtures; groups by SeriesUID+orientation+echo/b-value | todo | |
-| T1.3 | Adapter registry (entry points) + `loose` (folders, zip, 7z, nested, zip-bomb limits) | I | T1.2 | `engine/medmereport/ingest/` | Fixtures import; a 10 GB zip-bomb is rejected | todo | |
-| T1.4 | `dicomdir` adapter | I | T1.3 | `ingest/dicomdir.py` | Synapse-style fixture imports | todo | |
-| T1.5 | `dcmburner` adapter (OpenSSL Salted__, EVP_BytesToKey SHA-256/MD5, AES-256-CBC, in-memory) | I | T1.3 | `ingest/dcmburner.py` | Fixture decrypts with password; wrong password gives a clear error; password zeroed | todo | |
-| T1.6 | `radiant` adapter (AES zip → container.zip) | I | T1.3 | `ingest/radiant.py` | Fixture imports | todo | |
-| T1.7 | `images` adapter (jpg/png/heic/tiff/pdf pages, EXIF rotate) | I | T1.3 | `ingest/images.py` | Photo + PDF fixtures become XR-photo series | todo | |
-| T1.8 | Series classifier (modality, body part, plane, sequence, role incl. MIP/localizer) | P | T1.2 | `engine/medmereport/classify/` | ≥95% correct on labelled fixture set | todo | |
-| T1.9 | Import API + slice-stack exporter (WebP/PNG + meta JSON, label maps) | E | T1.3,T0.6 | `server/routes/import.py`, `engine/medmereport/export/` | Import job emits catalogue + slices | todo | |
-| T1.10 | Import wizard UI (drag-drop/path, password prompt, progress, catalogue) | W | T0.7,T1.9 | `web/src/routes/import/` | e2e: synthetic dcmburner disc → catalogue | todo | |
-| T1.11 | 2D viewer (port prototype SliceViewer as a Svelte component: W/L, zoom/pan, measure, cine, labels, localizer, sync panes, sagittal preset) | W | T1.9 | `web/src/lib/viewer2d/` | e2e: scroll, W/L, measure mm matches fixture spacing | todo | |
-| T1.12 | Study dashboard (series cards, sequence explainers, disclaimer) | W | T1.10 | `web/src/routes/study/` | Lists all series grouped by region | todo | |
+| T1.1 | Synthetic fixture generator: builds all 5 container types from public sample DICOM (pydicom test files) and generated phantoms | Q | T0.1 | `engine/tests/fixtures/` | `pytest --gen-fixtures` creates dicomdir/dcmburner/radiant/loose/images samples, with no real PHI | done | agent-Q |
+| T1.2 | DICOM layer: sniffing (DICM + implicit VR), decoding (gdcm, openjpeg, rle), geometry, series grouping, multi-frame | I | T0.3 | `engine/medmereport/dicom/` | Decodes all codecs in fixtures; groups by SeriesUID+orientation+echo/b-value | done | agent-I |
+| T1.3 | Adapter registry (entry points) + `loose` (folders, zip, 7z, nested, zip-bomb limits) | I | T1.2 | `engine/medmereport/ingest/` | Fixtures import; a 10 GB zip-bomb is rejected | done | agent-I |
+| T1.4 | `dicomdir` adapter | I | T1.3 | `ingest/dicomdir.py` | Synapse-style fixture imports | done | agent-I |
+| T1.5 | `dcmburner` adapter (OpenSSL Salted__, EVP_BytesToKey SHA-256/MD5, AES-256-CBC, in-memory) | I | T1.3 | `ingest/dcmburner.py` | Fixture decrypts with password; wrong password gives a clear error; password zeroed | done | agent-Q |
+| T1.6 | `radiant` adapter (AES zip → container.zip) | I | T1.3 | `ingest/radiant.py` | Fixture imports | done | agent-Q |
+| T1.7 | `images` adapter (jpg/png/heic/tiff/pdf pages, EXIF rotate) | I | T1.3 | `ingest/images.py` | Photo + PDF fixtures become XR-photo series | done | agent-Q |
+| T1.8 | Series classifier (modality, body part, plane, sequence, role incl. MIP/localizer) | P | T1.2 | `engine/medmereport/classify/` | ≥95% correct on labelled fixture set | done | agent-I |
+| T1.9 | Import API + slice-stack exporter (WebP/PNG + meta JSON, label maps) | E | T1.3,T0.6 | `server/routes/import.py`, `engine/medmereport/export/` | Import job emits catalogue + slices | done | claude |
+| T1.10 | Import wizard UI (drag-drop/path, password prompt, progress, catalogue) | W | T0.7,T1.9 | `web/src/routes/import/` | e2e: synthetic dcmburner disc → catalogue | done | agent-W |
+| T1.11 | 2D viewer (port prototype SliceViewer as a Svelte component: W/L, zoom/pan, measure, cine, labels, localizer, sync panes, sagittal preset) | W | T1.9 | `web/src/lib/viewer2d/` | e2e: scroll, W/L, measure mm matches fixture spacing | done | agent-W |
+| T1.12 | Study dashboard (series cards, sequence explainers, disclaimer) | W | T1.10 | `web/src/routes/study/` | Lists all series grouped by region | done | agent-W |
+
+| T1.13 | Playwright e2e: synthetic encrypted disc → password → dashboard → viewer (scroll, W/L, measure) | Q | T1.10,T1.11 | `web/e2e/` | Runs in CI on built app | todo | |
+| T1.14 | Merge duplicate safe-zip extractors (`loose.extract_zip` vs `dcmburner.safe_extract_zip`) into `ingest/archive.py`; add `warnings` to OpenContext | I | T1.3,T1.5 | `engine/medmereport/ingest/` | One extractor, all ingest tests green | todo | |
+| T1.15 | Reconcile hand-written `web/src/lib/api/endpoints.ts` with generated OpenAPI types | W | T1.9 | `web/src/lib/api/` | No hand-written duplicates of engine models | todo | |
 
 ## M2 — Brain MR 3D
 | ID | Task | Lane | Deps | Paths | Acceptance | Status | Owner |
@@ -113,3 +117,5 @@ T8.1 Tauri v2 desktop app (engine sidecar) · T8.2 hosted web mode (OIDC, job qu
 2026-11-21 | claude | T0.1–T0.8 | done | engine scaffold (uv), hardened localhost server, spawn job manager + SSE, PHI-redacting logs, session temp hygiene, egress guard, Svelte 5 shell + typed OpenAPI client + i18n (en/hi), CI workflow. 23 tests green; verified end-to-end in Chrome (token→cookie, self-test job streams progress)
 2026-11-21 | claude | T0.5 | note | cross-site check scoped to /api: opening the UI shell from a terminal/shortcut is a top-level navigation and must work; API stays origin-locked (tests added)
 2026-11-21 | claude | T0.9 | doing | serve/doctor/purge/openapi done; process/models/diagnose land with M1/M2
+2026-11-21 | agents I/Q/W + claude | T1.1–T1.12 | done | 5 container adapters (dicomdir, dcmburner, radiant, loose zip/7z, images/PDF), DICOM layer, classifier, importer + study API, import wizard, 2D viewer, dashboard, sagittal page. 200 engine + 44 web tests. Verified in Chrome against the real engine: synthetic encrypted disc → password → dashboard → viewer
+2026-11-21 | claude | T0.9 | done | diagnose (de-identified report) added

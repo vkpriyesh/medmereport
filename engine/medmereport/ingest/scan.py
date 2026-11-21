@@ -102,12 +102,20 @@ def _handle_dicom(path: Path, ctx: OpenContext, res: ScanResult, insts: list[Ins
 
 def _summarise(res: ScanResult, tally: _Tally, duplicates: int) -> None:
     notes = [
-        (tally.corrupt, "files could not be read (damaged or unsupported) and were skipped"),
-        (duplicates, "duplicate images were ignored"),
-        (tally.non_image, "non-image DICOM objects (structured reports, presentation states) were ignored"),
-        (tally.unknown, "files were not recognised as scans or images"),
+        (
+            tally.corrupt,
+            "file could not be read (damaged or unsupported) and was skipped",
+            "files could not be read (damaged or unsupported) and were skipped",
+        ),
+        (duplicates, "duplicate image was ignored", "duplicate images were ignored"),
+        (
+            tally.non_image,
+            "non-image DICOM object (report or presentation state) was ignored",
+            "non-image DICOM objects (reports, presentation states) were ignored",
+        ),
+        (tally.unknown, "file was not recognised as a scan or image", "files were not recognised as scans or images"),
     ]
-    res.warnings.extend(f"{n} {text}." for n, text in notes if n)
+    res.warnings.extend(f"{n} {one if n == 1 else many}." for n, one, many in notes if n)
 
 
 def scan_source(src: Path, ctx: OpenContext, adapter: str | None = None) -> ScanResult:

@@ -62,4 +62,10 @@
     nav a { padding: 6px 9px; font-size: 13px; }
     .topbar { gap: 8px; padding: 0 12px; }
   }
+  @media (max-width: 520px) {
+    .name { display: none; }
+    nav { margin-left: 0; gap: 0; min-width: 0; overflow-x: auto; }
+    nav a { padding: 6px 7px; white-space: nowrap; }
+    .lang select { padding: 5px 4px; max-width: 86px; }
+  }
 </style>
