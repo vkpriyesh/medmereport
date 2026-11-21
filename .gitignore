@@ -38,7 +38,8 @@ web/dist/
 .vite/
 
 # --- Models (downloaded at runtime, never committed) ---
-models/
+/models/
+/engine/models/
 *.onnx
 *.pt
 *.pth
