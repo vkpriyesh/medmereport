@@ -119,6 +119,39 @@ def cmd_openapi(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_models(args: argparse.Namespace) -> int:
+    from medmereport.models import registry
+
+    if args.action == "list":
+        for a in registry.ASSETS.values():
+            state = "installed" if registry.available(a.name) else "not downloaded"
+            print(f"{a.name:<26}{a.size / 2**20:7.1f} MB  {state:<15}{a.description}", flush=True)
+        print("\nLicences and attribution:", flush=True)
+        for c in registry.credits():
+            print(f"  {c['name']}: {c['licence']}", flush=True)
+        return 0
+    target = args.name or "all"
+    which = registry.names() if target == "all" else [target]
+    if target != "all" and target not in registry.ASSETS:
+        which = registry.names(bundle=target)
+        if not which:
+            print(f"Unknown model {target!r}. Try: medmereport models list", flush=True)
+            return 2
+    print("Downloading only the files you asked for (nothing about you is sent).", flush=True)
+
+    def show(name: str, done: int, total: int) -> None:
+        print(f"\r  {name:<26}{100 * done / max(total, 1):5.1f}%", end="", flush=True)
+
+    try:
+        for n in which:
+            registry.pull(n, show)
+            print(f"\r  {n:<26} done  ", flush=True)
+    except registry.AssetError as e:
+        print(f"\n{e}", flush=True)
+        return 1
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="medmereport", description="See inside your scans: privately, on your computer.")
     p.add_argument("--version", action="version", version=f"medmereport {__version__}")
@@ -136,6 +169,12 @@ def main(argv: list[str] | None = None) -> int:
     dg.add_argument("path")
     dg.add_argument("--out")
     dg.set_defaults(fn=lambda a: __import__("medmereport.cli.diagnose", fromlist=["run"]).run(a.path, a.out))
+    mo = sub.add_parser("models", help="list or download optional atlases/models (the only network use)")
+    mo_sub = mo.add_subparsers(dest="action", required=True)
+    mo_sub.add_parser("list", help="show available and installed assets")
+    mp = mo_sub.add_parser("pull", help="download an asset, a bundle (e.g. atlas-ho) or all")
+    mp.add_argument("name", nargs="?", default="all")
+    mo.set_defaults(fn=cmd_models)
     o = sub.add_parser("openapi", help=argparse.SUPPRESS)
     o.add_argument("--out")
     o.set_defaults(fn=cmd_openapi)
