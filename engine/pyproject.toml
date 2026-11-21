@@ -1,0 +1,71 @@
+[project]
+name = "medmereport"
+version = "0.1.0"
+description = "See inside your scans: local-only medical imaging to interactive 3D, in your browser."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11,<3.14"
+authors = [{ name = "vkpriyesh" }]
+dependencies = [
+  "fastapi>=0.115",
+  "starlette>=1.0.1",
+  "uvicorn>=0.32",
+  "pydantic>=2.9",
+  "numpy>=2.0",
+  "scipy>=1.13",
+  "pydicom>=3.0",
+  "python-gdcm>=3.0.24",
+  "pylibjpeg>=2.0",
+  "pylibjpeg-openjpeg>=2.3",
+  "pylibjpeg-rle>=2.0",
+  "SimpleITK>=2.4",
+  "scikit-image>=0.24",
+  "trimesh>=4.4",
+  "fast-simplification>=0.1.7",
+  "pillow>=10.4",
+  "pyzipper>=0.3.6",
+  "py7zr>=0.22",
+  "cryptography>=43",
+  "pypdfium2>=4.30",
+]
+
+[project.optional-dependencies]
+ai = ["onnxruntime>=1.19"]
+
+[project.scripts]
+medmereport = "medmereport.cli.main:main"
+mmr = "medmereport.cli.main:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-timeout>=2.3", "hypothesis>=6.112", "httpx>=0.27", "ruff>=0.7", "mypy>=1.13"]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["medmereport"]
+
+# The built web UI is committed to medmereport/server/static (via `npm run build` in web/)
+# so that `uv tool install git+https://github.com/vkpriyesh/medmereport` works without Node.
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM"]
+ignore = ["S101", "S603", "S607", "UP042", "SIM105", "SIM102"]
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_ignores = true
+[[tool.mypy.overrides]]
+module = ["medmereport.core.*", "medmereport.server.*"]
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+timeout = 300
