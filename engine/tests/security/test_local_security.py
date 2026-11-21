@@ -60,3 +60,14 @@ def test_cookie_is_httponly_strict(app_client):
     r = app_client.post("/api/session", json={"token": TOKEN}, headers=ORIGIN)
     sc = r.headers["set-cookie"].lower()
     assert "httponly" in sc and "samesite=strict" in sc
+
+
+def test_ui_shell_navigation_from_elsewhere_allowed(app_client):
+    # e.g. clicking the launch link in a terminal or shortcut; the shell holds no data
+    r = app_client.get("/", headers={"Sec-Fetch-Site": "cross-site", "Sec-Fetch-Mode": "navigate"})
+    assert r.status_code in (200, 503)
+
+
+def test_cross_site_api_still_blocked_even_with_cookie(authed):
+    r = authed.get("/api/capabilities", headers={"Sec-Fetch-Site": "cross-site", "Sec-Fetch-Mode": "cors"})
+    assert r.status_code == 403

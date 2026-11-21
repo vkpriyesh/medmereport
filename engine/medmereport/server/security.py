@@ -84,7 +84,15 @@ class LocalSecurity:
         if origin is not None and origin not in self.origins:
             return JSONResponse({"detail": "Forbidden origin"}, status_code=403)
         site = req.headers.get("sec-fetch-site")
-        if site is not None and site not in ("same-origin", "none") and not (origin and origin in self.origins):
+        is_api = req.url.path.startswith("/api/")
+        # Opening the UI page from a terminal, shortcut or another site is a harmless top-level navigation
+        # (the shell holds no data). Every /api call must come from our own page.
+        if (
+            is_api
+            and site is not None
+            and site not in ("same-origin", "none")
+            and not (origin and origin in self.origins)
+        ):
             return JSONResponse({"detail": "Cross-site request blocked"}, status_code=403)
         if req.method in UNSAFE and origin is None and site is None:
             # Browsers always send one of these on state-changing fetches; non-browser clients use the bearer token.

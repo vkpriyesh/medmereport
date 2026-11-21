@@ -19,15 +19,15 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 ## M0 — Foundations
 | ID | Task | Lane | Deps | Paths | Acceptance | Status | Owner |
 |---|---|---|---|---|---|---|---|
-| T0.1 | Repo scaffold: `engine/` (uv project, package `medmereport`), `web/` (Vite+TS+Svelte 5), `docs/`, `scripts/`, `.editorconfig`, Apache-2.0 LICENSE, NOTICE, strict `.gitignore` (blocks `*.dcm`, `DICOMDIR`, `*.nii*`, `*.enc`, `workspace/`) | D | – | root | `uv run medmereport --help` and `npm run build` work | todo | |
-| T0.2 | CI: ruff, mypy, pytest, eslint, svelte-check, vitest on Win/macOS/Linux | D | T0.1 | `.github/` | CI green on empty project | todo | |
-| T0.3 | Core domain models + settings + workspace + session temp manager (0700, wipe on start/exit) | E | T0.1 | `engine/medmereport/core/` | Unit tests; temp cleared after a crash simulation | todo | |
-| T0.4 | PHI-redacting structured logger | E | T0.3 | `engine/medmereport/core/logging.py` | Property test: names/IDs/dates/paths never appear in log output | todo | |
-| T0.5 | FastAPI server: 127.0.0.1 random port, TrustedHost, fragment-token→cookie, Origin check, no CORS, CSP, static UI serving | E | T0.3 | `engine/medmereport/server/` | Security tests: wrong Host/Origin/token → 403; DNS-rebind sim blocked | todo | |
-| T0.6 | Job manager: ProcessPool, progress events, cancel, SSE endpoint, OpenAPI export | E | T0.5 | `engine/medmereport/server/jobs.py` | Fake 3-stage job streams progress and cancels cleanly | todo | |
-| T0.7 | OpenAPI → TS client generation + web app shell (routing, theme tokens, layout, i18n scaffold en/hi) | W | T0.6 | `web/src/` | UI shows engine status via generated client | todo | |
-| T0.8 | Network egress guard test (socket monkeypatch) covering serve + process | Q | T0.5 | `engine/tests/security/` | Fails if any non-loopback connect occurs | todo | |
-| T0.9 | `medmereport` CLI: serve (opens browser), process, doctor, purge, models, diagnose (de-identified file-tree + magic-bytes report for unknown discs) | E | T0.5 | `engine/medmereport/cli/` | `medmereport doctor` reports env, CPU, RAM, optional extras | todo | |
+| T0.1 | Repo scaffold: `engine/` (uv project, package `medmereport`), `web/` (Vite+TS+Svelte 5), `docs/`, `scripts/`, `.editorconfig`, Apache-2.0 LICENSE, NOTICE, strict `.gitignore` (blocks `*.dcm`, `DICOMDIR`, `*.nii*`, `*.enc`, `workspace/`) | D | – | root | `uv run medmereport --help` and `npm run build` work | done | claude |
+| T0.2 | CI: ruff, mypy, pytest, eslint, svelte-check, vitest on Win/macOS/Linux | D | T0.1 | `.github/` | CI green on empty project | done | claude |
+| T0.3 | Core domain models + settings + workspace + session temp manager (0700, wipe on start/exit) | E | T0.1 | `engine/medmereport/core/` | Unit tests; temp cleared after a crash simulation | done | claude |
+| T0.4 | PHI-redacting structured logger | E | T0.3 | `engine/medmereport/core/logging.py` | Property test: names/IDs/dates/paths never appear in log output | done | claude |
+| T0.5 | FastAPI server: 127.0.0.1 random port, TrustedHost, fragment-token→cookie, Origin check, no CORS, CSP, static UI serving | E | T0.3 | `engine/medmereport/server/` | Security tests: wrong Host/Origin/token → 403; DNS-rebind sim blocked | done | claude |
+| T0.6 | Job manager: ProcessPool, progress events, cancel, SSE endpoint, OpenAPI export | E | T0.5 | `engine/medmereport/server/jobs.py` | Fake 3-stage job streams progress and cancels cleanly | done | claude |
+| T0.7 | OpenAPI → TS client generation + web app shell (routing, theme tokens, layout, i18n scaffold en/hi) | W | T0.6 | `web/src/` | UI shows engine status via generated client | done | claude |
+| T0.8 | Network egress guard test (socket monkeypatch) covering serve + process | Q | T0.5 | `engine/tests/security/` | Fails if any non-loopback connect occurs | done | claude |
+| T0.9 | `medmereport` CLI: serve (opens browser), process, doctor, purge, models, diagnose (de-identified file-tree + magic-bytes report for unknown discs) | E | T0.5 | `engine/medmereport/cli/` | `medmereport doctor` reports env, CPU, RAM, optional extras | doing | claude |
 
 ## M1 — Ingest & 2D viewing
 | ID | Task | Lane | Deps | Paths | Acceptance | Status | Owner |
@@ -110,3 +110,6 @@ T8.1 Tauri v2 desktop app (engine sidecar) · T8.2 hosted web mode (OIDC, job qu
 ## Log
 <!-- newest last. Format: YYYY-MM-DD HH:MM | owner | task | action | note/commit -->
 2026-11-21 | planner | – | created | Plan, research and task list drafted from prototype learnings
+2026-11-21 | claude | T0.1–T0.8 | done | engine scaffold (uv), hardened localhost server, spawn job manager + SSE, PHI-redacting logs, session temp hygiene, egress guard, Svelte 5 shell + typed OpenAPI client + i18n (en/hi), CI workflow. 23 tests green; verified end-to-end in Chrome (token→cookie, self-test job streams progress)
+2026-11-21 | claude | T0.5 | note | cross-site check scoped to /api: opening the UI shell from a terminal/shortcut is a top-level navigation and must work; API stays origin-locked (tests added)
+2026-11-21 | claude | T0.9 | doing | serve/doctor/purge/openapi done; process/models/diagnose land with M1/M2

@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response, StreamingRes
 from pydantic import BaseModel
 
 from medmereport import __version__
-from medmereport.core.models import JobInfo, JobStatus
+from medmereport.core.models import JobInfo, JobStatus, ProgressEvent
 from medmereport.core.paths import SessionTemp
 from medmereport.server.jobs import JobManager
 from medmereport.server.security import COOKIE, LocalSecurity
@@ -110,6 +110,13 @@ def create_app(*, port: int, token: str, session: SessionTemp, dev_origins: tupl
         if not jobs.cancel(job_id):
             raise HTTPException(404, "No such job")
         return {"ok": True}
+
+    @api.get("/jobs/{job_id}/history", response_model=list[ProgressEvent])
+    def job_history(job_id: str) -> list[ProgressEvent]:
+        j = jobs.get(job_id)
+        if not j:
+            raise HTTPException(404, "No such job")
+        return list(j.events)
 
     @api.get("/jobs/{job_id}/events")
     async def job_events(job_id: str, request: Request) -> StreamingResponse:

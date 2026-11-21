@@ -38,11 +38,11 @@ def cmd_serve(args: argparse.Namespace) -> int:
     session = SessionTemp()
     app = create_app(port=port, token=token, session=session, dev_origins=dev_origins)
     url = f"http://127.0.0.1:{port}/#token={token}"
-    print(f"\n  medmereport {__version__} is running privately on this computer.")
-    print(f"  Open: {url}")
-    print("  Nothing is uploaded. Press Ctrl+C to stop (temporary files are deleted).\n")
+    print(f"\n  medmereport {__version__} is running privately on this computer.", flush=True)
+    print(f"  Open: {url}", flush=True)
+    print("  Nothing is uploaded. Press Ctrl+C to stop (temporary files are deleted).\n", flush=True)
     if args.dev:
-        print(f"  Dev UI: http://127.0.0.1:5173/#token={token}  (vite proxies /api to port {port})\n")
+        print(f"  Dev UI: http://127.0.0.1:5173/#token={token}  (vite proxies /api to port {port})\n", flush=True)
     if not args.no_browser:
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     try:
@@ -57,23 +57,23 @@ def cmd_doctor(_: argparse.Namespace) -> int:
 
     from medmereport.core.paths import data_dir
 
-    print(f"medmereport {__version__}")
-    print(f"Python      {platform.python_version()} ({sys.executable})")
-    print(f"System      {platform.system()} {platform.release()} {platform.machine()}")
-    print(f"CPU cores   {os.cpu_count()}")
+    print(f"medmereport {__version__}", flush=True)
+    print(f"Python      {platform.python_version()} ({sys.executable})", flush=True)
+    print(f"System      {platform.system()} {platform.release()} {platform.machine()}", flush=True)
+    print(f"CPU cores   {os.cpu_count()}", flush=True)
     try:
         import psutil
 
         print(f"RAM         {psutil.virtual_memory().total / 2**30:.1f} GB")
     except ImportError:
         pass
-    print(f"Data dir    {data_dir()}")
+    print(f"Data dir    {data_dir()}", flush=True)
     for mod, label in [("onnxruntime", "AI models (onnxruntime)"), ("totalsegmentator", "TotalSegmentator")]:
         ok = importlib.util.find_spec(mod) is not None
         print(f"{label:<26}{'installed' if ok else 'not installed (optional)'}")
     import pydicom
 
-    print(f"{'DICOM decoders':<26}", ", ".join(sorted(_decoders(pydicom))))
+    print(f"{'DICOM decoders':<26}", ", ".join(sorted(_decoders(pydicom))), flush=True)
     return 0
 
 
@@ -96,7 +96,7 @@ def cmd_purge(args: argparse.Namespace) -> int:
             print("Nothing deleted.")
             return 1
     removed = purge_all()
-    print("Deleted:" if removed else "Nothing to delete.")
+    print("Deleted:" if removed else "Nothing to delete.", flush=True)
     for r in removed:
         print("  ", r)
     return 0
