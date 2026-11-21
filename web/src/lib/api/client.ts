@@ -47,7 +47,7 @@ export async function bootstrapSession(): Promise<'ok' | 'missing' | 'invalid'> 
       sessionStorage.setItem('mmr-ok', '1')
       return 'ok'
     } catch {
-      return 'invalid'
+      // stale/old launch link: an existing valid session cookie still works
     }
   }
   try {

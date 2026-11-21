@@ -17,6 +17,10 @@
     document.documentElement.lang = i18n.lang
     // dev-only mock mode has no engine (and therefore no session) — see lib/api/mock.ts
     session = MOCK ? 'ok' : await bootstrapSession()
+    // re-check when a new launch link is opened in this already-open tab (only the #fragment changes)
+    window.addEventListener('hashchange', async () => {
+      if (!MOCK && /token=/.test(location.hash)) session = await bootstrapSession()
+    })
   })
 
   type Route = { pattern: string; component: any; props?: Record<string, unknown>; wide?: boolean }
