@@ -64,7 +64,7 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 | T2.10 | Region card UI (My Scan) + deep links to the 2D viewer | W | T2.7,T2.9,T1.11 | `web/src/lib/cards/` | Clicking a region shows measurements and thumbnails | done | agent-W |
 | T2.11 | Anatomy knowledge base (generic, cited, i18n-ready JSON; brain first) | K | – | `engine/medmereport/knowledge/` | Schema-validated; reviewed against textbooks | done | agent-K |
 
-| T2.12 | Publish SynthSeg ONNX weights as GitHub release assets (`models-synthseg-2.0`) on vkpriyesh/medmereport so `models pull synthseg-*` works | D | T2.4 | release | Hashes match registry | blocked | needs owner approval to publish (outward-facing) |
+| T2.12 | Publish SynthSeg ONNX weights as GitHub release assets (`models-synthseg-2.0`) on vkpriyesh/medmereport so `models pull synthseg-*` works | D | T2.4 | release | Hashes match registry | done | claude |
 | T2.13 | Head/skin surface layer (`H__skin`) + TOF vessel pipeline hookup in brain model | G | T2.6,T3.3 | geometry/ | Layers toggle in UI | done | agent-V |
 | T2.14 | Hover raycast acceleration (BVH) for ~900k-tri scenes; real-hardware fps check | W | T2.9 | web/src/lib/viewer3d | ≥45 fps on integrated GPU | done | agent-W |
 
@@ -143,3 +143,4 @@ T8.1 Tauri v2 desktop app (engine sidecar) · T8.2 hosted web mode (OIDC, job qu
 2026-11-22 | agent-CT | T3.8 | new | real-data validation + end-to-end TotalSegmentator run
 2026-11-22 | agent-W | T1.15,T3.6,T2.14,T3.7 | done | 6556e7a API types aliased to generated OpenAPI + model options/backend picker; 718972c 3D UI for body/spine/vessels (framing, layers from regions.json, system palette, body-scale explode/clip/X-ray, primary_series 2D link) + BVH hover (900k tris: pick 3.6→0.1 ms, 108 fps on Intel UHD in Chrome); 2585f74 synthetic body+spine mocks. 99 web tests
 2026-11-22 | claude | M3 | verified | merged 4 lanes; layer ids normalised to vocab groups (3ba2b39). Full engine suite 745 passed/2 skipped, ruff+mypy clean; web 99 tests. Chrome e2e on real engine: synthetic CT disc -> ct_body (3 s, lungs/airway/bones, card + thumbs OK), spine disc -> spine_mr (3 s), TOF disc -> vessels (6 s, scalp fat excluded). Polish items logged as T3.9; real-data validation is T3.8
+2026-11-22 | claude | T2.12 | done | owner approved; public repo vkpriyesh/medmereport created, release `models-synthseg-2.0` published with LICENSE/NOTICE/SHA256SUMS; `models pull synthseg-*` verified (sha256 match). LICENSE + NOTICE added to repo
