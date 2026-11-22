@@ -70,3 +70,13 @@ Produced by a model pipeline job (`POST /api/studies/{id}/model {pipeline?: "aut
 - `model/status.json`: `{ "pipeline", "version", "created", "warnings": [] }`.
 
 The structure vocabulary (`structure` ids, lobes and groups) and the anatomy knowledge base live in `engine/medmereport/knowledge/` and are served at `GET /api/knowledge` (same JSON for every study).
+
+## 6. Non-brain models (M3)
+Every model pipeline (`brain_mr`, `ct_body`, `vessels`, `spine_mr`) writes the **same artifact set** as §5 (`scene.glb`, `regions.json`, `stats.json`, `status.json`, optional label maps), so the 3D UI needs no pipeline-specific code paths beyond camera framing and layer lists.
+
+- `POST /api/studies/{id}/model {pipeline?: "auto"|"brain_mr"|"ct_body"|"vessels"|"spine_mr", backend?: "auto"|"classical"|"totalseg"}`; `GET /api/studies/{id}/model/options` lists applicable pipelines with scores and available backends.
+- `regions.json` gains `"pipeline"` and `"framing": "head"|"body"|"spine"` (UI picks camera/default layers) plus `"layers": [{ "id": "hemi_L"|"bone"|"organ"|…, "default": bool }]` (the groups actually present).
+- Structure ids come from `knowledge/structures.py` (`CT_CLASSICAL`, `SPINE`, `VESSELS`, `BODY`). TotalSegmentator classes are mapped by `totalseg_structure()` (`kidney_left` → `L__kidney`, `vertebrae_L1` → `M__vertebrae_l1`).
+- Layers without anatomy semantics keep reserved prefixes: `H__skin`, `B__skeleton`, `V__cow` / `V__neck` / `V__body`. Classical CT regions that *are* clickable: `L__lung`, `R__lung`, `M__airway`.
+- CT measurements are volumes (cm³) and mean HU per structure; every one has `method` + `caveats`. No diagnostic thresholds.
+- Spine: the sagittal series is the primary 2D view; `regions.json` sets `"primary_series"`.

@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from typing import Literal
 
-Group = Literal["hemi", "cerebellum", "brainstem", "deep", "ventricle", "vessel", "body", "bone", "organ"]
+Group = Literal[
+    "hemi", "cerebellum", "brainstem", "deep", "ventricle", "vessel", "body", "bone", "organ", "muscle", "spine", "airway"
+]  # fmt: skip
 
 # id -> (division/lobe id, render group, inner?)  inner=True: hidden inside the outer surface (shown in X-ray mode)
 BRAIN: dict[str, tuple[str, Group, bool]] = {
@@ -86,7 +88,30 @@ BRAIN: dict[str, tuple[str, Group, bool]] = {
 VESSELS: dict[str, tuple[str, Group, bool]] = {
     "cerebral_arteries": ("arteries", "vessel", True),
     "neck_arteries": ("arteries", "vessel", True),
+    "body_arteries": ("arteries", "vessel", True),  # classical CTA: contrast-filled lumen, not split further
 }
+
+# M3 contract. Classical (HU-threshold) CT surfaces: few, coarse, always available.
+CT_CLASSICAL: dict[str, tuple[str, Group, bool]] = {
+    "skin": ("integument", "body", False),
+    "skeleton": ("skeleton", "bone", True),
+    "lung": ("respiratory", "organ", True),  # hemi L/R
+    "airway": ("respiratory", "airway", True),  # trachea + main bronchi (M)
+}
+
+# Spine MR (classical). Vertebra ids follow TotalSegmentator's naming lower-cased: ``vertebrae_c1`` .. ``vertebrae_s1``.
+SPINE: dict[str, tuple[str, Group, bool]] = {
+    "spinal_cord": ("nervous_spine", "spine", True),
+    "spinal_csf": ("nervous_spine", "spine", False),
+    "intervertebral_disc": ("spinal_column", "spine", False),
+    "vertebral_column": ("spinal_column", "bone", False),  # when individual levels can't be separated
+    **{f"vertebrae_{lv}": ("spinal_column", "bone", False) for lv in
+       [f"c{i}" for i in range(1, 8)] + [f"t{i}" for i in range(1, 13)] + [f"l{i}" for i in range(1, 6)] + ["s1"]},
+}
+
+# Filled by the knowledge lane (T3.5): every class of TotalSegmentator's *open* tasks, mapped by the rule in
+# ``totalseg_structure`` below. Keep ids identical to the rule's output.
+BODY: dict[str, tuple[str, Group, bool]] = {}
 
 LOBES = [
     "frontal",
@@ -101,9 +126,38 @@ LOBES = [
     "cerebellum",
     "brainstem",
     "arteries",
+    # body (M3)
+    "integument",
+    "skeleton",
+    "spinal_column",
+    "nervous_spine",
+    "respiratory",
+    "cardiovascular",
+    "digestive",
+    "urinary",
+    "endocrine",
+    "lymphatic",
+    "reproductive",
+    "muscular",
 ]
 
-ALL: dict[str, tuple[str, Group, bool]] = {**BRAIN, **VESSELS}
+ALL: dict[str, tuple[str, Group, bool]] = {**BRAIN, **VESSELS, **CT_CLASSICAL, **SPINE, **BODY}
+
+
+def totalseg_structure(class_name: str) -> tuple[str, str]:
+    """Map a TotalSegmentator class name to ``(structure, hemi)``.
+
+    Rule: lower-case; a ``_left``/``_right`` token anywhere is removed and becomes hemi ``L``/``R``
+    (``kidney_left`` -> ``kidney``/L, ``rib_left_3`` -> ``rib_3``/L); everything else is hemi ``M``
+    (``vertebrae_L1`` -> ``vertebrae_l1``/M).
+    """
+    parts = class_name.lower().split("_")
+    hemi = "M"
+    if "left" in parts:
+        hemi, parts = "L", [p for p in parts if p != "left"]
+    elif "right" in parts:
+        hemi, parts = "R", [p for p in parts if p != "right"]
+    return "_".join(parts), hemi
 
 
 def lobe_of(structure: str) -> str:
