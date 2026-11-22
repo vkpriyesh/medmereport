@@ -34,7 +34,7 @@ from medmereport.knowledge.structures import ALL, group_of, is_inner
 ProgressCb = Callable[[str, float, str], None]
 
 # Layer id for the reserved (non-clickable) prefixes; matches the web viewer's layer names.
-RESERVED_LAYERS = {"H": "skin", "B": "bone", "V": "vessels"}
+RESERVED_LAYERS = {"H": "body", "B": "bone", "V": "vessel"}  # layer ids = vocabulary group ids
 
 
 @dataclass(frozen=True)
@@ -227,7 +227,7 @@ def layers_present(model: LabelModel, defaults: dict[str, bool] | None = None) -
         lay = layer_of(key)
         if lay not in seen:
             seen.append(lay)
-    return [{"id": lay, "default": bool(defaults.get(lay, lay != "skin"))} for lay in seen]
+    return [{"id": lay, "default": bool(defaults.get(lay, lay != "body"))} for lay in seen]
 
 
 def regions_document(

@@ -58,7 +58,7 @@ def test_build_model_regions_codes_and_reserved_layers():
     doc = regions_document(model, pipeline="ct_body", framing="body", backend="b", licence="l", caveats=["c"])
     assert doc["framing"] == "body" and doc["pipeline"] == "ct_body"
     assert {r["key"] for r in doc["regions"]} == {"L|lung", "R|lung"}
-    assert {lay["id"]: lay["default"] for lay in doc["layers"]} == {"skin": False, "organ": True}
+    assert {lay["id"]: lay["default"] for lay in doc["layers"]} == {"body": False, "organ": True}
     left = next(r for r in doc["regions"] if r["key"] == "L|lung")
     assert left["centroid"][0] > 10 and left["group"] == "organ" and left["inner"] is True
     coded = coded_labels(lab, model, SPECS)

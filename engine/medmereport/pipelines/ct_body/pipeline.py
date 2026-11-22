@@ -261,7 +261,7 @@ class CTBodyPipeline:
             summary=summary,
             regions=regions,
             label_series=[series.id],
-            layer_defaults={"skin": False},
+            layer_defaults={"body": False},
             extra_provenance={"series": series.id, "working_spacing_mm": [round(v, 3) for v in geom.spacing]},
         )
         return write_artifacts(self, sp, study_dir, out, budget.max_glb_bytes)

@@ -139,7 +139,7 @@ def test_pipeline_end_to_end_classical(imported):
     assert regions["backend"].startswith("classical")
     assert {r["key"] for r in regions["regions"]} == {"L|lung", "R|lung", "M|airway"}
     lay = {x["id"]: x["default"] for x in regions["layers"]}
-    assert lay == {"skin": False, "bone": True, "organ": True, "airway": True}
+    assert lay == {"body": False, "bone": True, "organ": True, "airway": True}
     left = next(r for r in regions["regions"] if r["key"] == "L|lung")
     assert left["centroid"][0] > 20  # viewer X = patient Left
 
