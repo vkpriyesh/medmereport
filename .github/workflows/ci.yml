@@ -40,3 +40,22 @@ jobs:
       - run: uv run pytest -q
       - name: CLI smoke test
         run: uv run medmereport doctor
+
+  e2e:
+    # Real app in a real (headless) browser: synthetic encrypted disc -> import -> 2D viewer -> 3D model.
+    # Runs against the committed UI build in engine/medmereport/server/static.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults: { run: { working-directory: engine } }
+    env: { MEDMEREPORT_E2E: "1" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { python-version: "3.12" }
+      - run: uv sync --locked --group e2e
+      - name: Install headless Chromium
+        run: uv run --group e2e playwright install --with-deps --only-shell chromium
+      - run: uv run --group e2e pytest tests/e2e -q
