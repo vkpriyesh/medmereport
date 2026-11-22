@@ -14,12 +14,15 @@ import importlib
 import os
 import shutil
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, ClassVar
 
 from medmereport.core.models import StudyInfo
 from medmereport.core.studies import write_json
 from medmereport.pipelines.base import JobLike, PipelineError, PipelinePlan, Stage, StageProgress, provenance
+
+HeadLayers = Callable[..., Any]  # (study_dir, study, reference, labelmap, progress) -> vessels.layers.Layers
 
 BuildVolumes = Callable[..., Any]  # (study_dir, study, progress) -> (Volume, list[Volume])
 BestBackend = Callable[..., Any]  # (reference) -> SegmentationBackend | None
@@ -69,10 +72,12 @@ class BrainMRPipeline:
         build_volumes: BuildVolumes | None = None,
         best_backend: BestBackend | None = None,
         budget: Any = None,
+        head_layers: HeadLayers | None = None,
     ) -> None:
         self._build_volumes = build_volumes
         self._best_backend = best_backend
         self.budget = budget
+        self._head_layers = head_layers
 
     def applies(self, study: StudyInfo) -> float:
         score = 0.0
@@ -94,6 +99,7 @@ class BrainMRPipeline:
             stages=[
                 Stage("fuse", 20),
                 Stage("segment", 35),
+                Stage("layers", 10),
                 Stage("surface", 25),
                 Stage("glb", 3),
                 Stage("stats", 5),
@@ -106,8 +112,9 @@ class BrainMRPipeline:
         from medmereport.analysis.stats import compute_stats
         from medmereport.export.labelmaps import coded_volume, read_meta, write_label_maps
         from medmereport.export.thumbs import ViewSource, choose_series, native_source, virtual_source, write_thumbs
-        from medmereport.geometry.glb import display_codes, write_glb, write_regions_json
+        from medmereport.geometry.glb import display_codes, regions_document, write_glb
         from medmereport.geometry.surface import Budget, build_brain_model, known_regions, region_key
+        from medmereport.pipelines.vessels.layers import layer_list, region_entry
 
         sp = StageProgress(ctx, self.plan(study))
         budget = self.budget or Budget()
@@ -126,6 +133,10 @@ class BrainMRPipeline:
             raise PipelineError("segmentation_empty", "The segmentation found no brain structures.")
         sp.check_cancelled()
 
+        extra = self._extra_layers(study_dir, study, reference, lm, sp)
+        if extra.n_faces:  # extra layers share the triangle budget
+            budget = replace(budget, max_triangles=max(200_000, budget.max_triangles - extra.n_faces))
+
         model_dir = study_dir / "model"
         if model_dir.exists():
             shutil.rmtree(model_dir)
@@ -135,9 +146,14 @@ class BrainMRPipeline:
             sp.warn(w)
 
         sp("glb", 0)
+        model.meshes.update(extra.meshes)  # no RegionInfo: no 2D label code, not part of the brain stats
         glb_size = write_glb(model, model_dir / "scene.glb", budget.max_glb_bytes)
         caveats = [*lm.caveats, *model.warnings]
-        write_regions_json(model_dir / "regions.json", model, lm.backend, lm.licence, caveats)
+        doc = regions_document(model, lm.backend, lm.licence, caveats)
+        doc["regions"] += [region_entry(k, model.meshes[k]) for k in sorted(extra.meshes) if k in model.meshes]
+        groups = {r["group"]: True for r in doc["regions"] if r["group"] not in extra.defaults}
+        doc.update(pipeline=self.name, framing="head", layers=layer_list({**groups, **extra.defaults}))
+        write_json(model_dir / "regions.json", doc)
 
         sp("stats", 0)
         stats = compute_stats(reference, extras, lm, model.tissue, model.regions)
@@ -176,6 +192,9 @@ class BrainMRPipeline:
         regions_out: dict[str, Any] = {}
         for key, ms in stats.regions.items():
             regions_out[key] = {"measurements": [m.model_dump() for m in ms], "thumbs": thumbs.get(key, [])}
+        for key, ms in extra.measurements.items():
+            if key in model.meshes:
+                regions_out[key] = {"measurements": [m.model_dump() for m in ms], "thumbs": []}
         write_json(
             model_dir / "stats.json",
             {
@@ -197,6 +216,27 @@ class BrainMRPipeline:
         )
         sp("thumbs", 100)
         return {"model": "model/", "regions": len(model.meshes), "warnings": len(warnings)}
+
+    def _extra_layers(self, study_dir: Path, study: StudyInfo, reference: Any, lm: Any, sp: StageProgress) -> Any:
+        """Head surface + TOF vessels (T2.13). Optional: a failure here never fails the brain model."""
+        from medmereport.pipelines.vessels.layers import Layers
+
+        sp("layers", 0)
+        try:
+            if self._head_layers is not None:
+                fn = self._head_layers
+            else:
+                from medmereport.pipelines.brain_mr.layers import head_layers as fn
+            extra: Layers = fn(study_dir, study, reference, lm, sp.sub("layers"))
+        except Exception as e:
+            if type(e).__name__ == "Cancelled":
+                raise
+            sp.warn("The head surface / vessel layers could not be built; the brain model is unaffected.")
+            extra = Layers()
+        for w in extra.warnings:
+            sp.warn(w)
+        sp.check_cancelled()
+        return extra
 
 
 def model_job(ctx: Any) -> dict[str, Any]:
