@@ -1,8 +1,11 @@
 """Manifest of optional downloadable assets (templates, atlases, model weights).
 
 This module is the **only** place in medmereport that opens a network connection, and only from
-:func:`pull`, which runs when the user explicitly asks (``medmereport models pull``). Nothing here
-touches the network at import time, and :func:`path` / :func:`available` are purely local.
+:func:`pull`, which runs when the user explicitly asks (``medmereport models pull`` or the in-app
+"Download" button, which runs :func:`medmereport.models.service.pull_job`). Nothing here touches the
+network at import time, and :func:`path` / :func:`available` are purely local. Downloads go only to the
+hosts of the pinned URLs below (plus GitHub's release-asset redirect hosts); ``MEDMEREPORT_OFFLINE=1``
+turns them off entirely.
 
 Every asset is pinned by URL + SHA-256 + size, downloaded over HTTPS into
 ``core.paths.models_dir()``, resumed from a ``.part`` file when interrupted, and only moved into place
@@ -12,12 +15,15 @@ after the checksum matches.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path
+from typing import Any
 
 from medmereport.core.paths import models_dir
 
@@ -174,14 +180,95 @@ ASSETS: dict[str, Asset] = {
 
 
 class AssetError(RuntimeError):
-    """Unknown asset, download failure or checksum mismatch."""
+    """Unknown asset, download failure or checksum mismatch.
+
+    ``code`` is a stable id the job manager forwards to the UI: ``unknown``, ``offline``, ``blocked_host``,
+    ``download_failed``, ``checksum_mismatch``.
+    """
+
+    def __init__(self, message: str, code: str = "download_failed") -> None:
+        super().__init__(message)
+        self.code = code
+        self.info: dict[str, Any] = {}
+
+
+# GitHub serves release assets by redirecting github.com/.../releases/download/... to one of these hosts.
+REDIRECT_HOSTS: dict[str, tuple[str, ...]] = {
+    "github.com": (
+        "objects.githubusercontent.com",
+        "release-assets.githubusercontent.com",
+        "github-releases.githubusercontent.com",
+    ),
+}
+LOOPBACK = ("127.0.0.1", "localhost", "::1")
+
+
+def offline() -> bool:
+    """True when the user turned model downloads off (``MEDMEREPORT_OFFLINE=1``)."""
+    return os.environ.get("MEDMEREPORT_OFFLINE", "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def allowed_hosts() -> set[str]:
+    """Every host a model download may contact: the pinned URLs' hosts and their known redirect targets."""
+    hosts: set[str] = set()
+    for a in ASSETS.values():
+        h = (urllib.parse.urlsplit(a.url).hostname or "").lower()
+        hosts.add(h)
+        hosts.update(REDIRECT_HOSTS.get(h, ()))
+    hosts.discard("")
+    return hosts
+
+
+def _check_url(url: str) -> None:
+    u = urllib.parse.urlsplit(url)
+    host = (u.hostname or "").lower()
+    if host in LOOPBACK and u.scheme in ("http", "https"):
+        return  # local test fixtures only; never leaves this computer
+    if u.scheme != "https":
+        raise AssetError("refusing a non-HTTPS download", "blocked_host")
+    if host not in allowed_hosts():
+        raise AssetError(f"refusing to download from {host!r}: not a pinned model host", "blocked_host")
+
+
+class _PinnedRedirects(urllib.request.HTTPRedirectHandler):
+    """Follows a redirect only to https on a pinned host (GitHub release assets redirect once)."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[no-untyped-def]
+        _check_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _overlay_test_manifest() -> None:
+    """Test hook: ``MEDMEREPORT_TEST_MODELS=<json file>`` adds fake assets served from 127.0.0.1 only.
+
+    Lets the engine tests run a real download job against a local HTTP fixture (the spawned job worker
+    inherits the environment). Entries whose URL is not on loopback are ignored, so this can never widen
+    where the app connects to.
+    """
+    src = os.environ.get("MEDMEREPORT_TEST_MODELS")
+    if not src:
+        return
+    try:
+        rows = json.loads(Path(src).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    keys = {f.name for f in fields(Asset)}
+    for row in rows if isinstance(rows, list) else []:
+        if not isinstance(row, dict) or set(row) != keys:
+            continue
+        if (urllib.parse.urlsplit(str(row["url"])).hostname or "") not in LOOPBACK:
+            continue
+        ASSETS[str(row["name"])] = Asset(**row)
+
+
+_overlay_test_manifest()
 
 
 def get(name: str) -> Asset:
     try:
         return ASSETS[name]
     except KeyError:
-        raise AssetError(f"unknown model asset {name!r}; known: {', '.join(sorted(ASSETS))}") from None
+        raise AssetError(f"unknown model asset {name!r}; known: {', '.join(sorted(ASSETS))}", "unknown") from None
 
 
 def names(bundle: str | None = None) -> list[str]:
@@ -213,21 +300,32 @@ def verify(name: str) -> bool:
     return available(name) and sha256_of(path(name)) == get(name).sha256
 
 
+def bundles() -> list[str]:
+    """Bundle ids in manifest order."""
+    return list(dict.fromkeys(a.bundle for a in ASSETS.values()))
+
+
 def _open(url: str, start: int) -> object:
-    if not url.startswith("https://"):
-        raise AssetError("refusing a non-HTTPS download")
-    req = urllib.request.Request(url, headers={"User-Agent": "medmereport-models"})  # noqa: S310 - https only
+    _check_url(url)  # https to a pinned host (or loopback); redirects are checked the same way
+    req = urllib.request.Request(url, headers={"User-Agent": "medmereport-models"})  # noqa: S310 - checked above
     if start:
         req.add_header("Range", f"bytes={start}-")
-    return urllib.request.urlopen(req, timeout=_TIMEOUT_S)  # noqa: S310 - https only, checked above
+    opener = urllib.request.build_opener(_PinnedRedirects)
+    return opener.open(req, timeout=_TIMEOUT_S)
 
 
 def pull(name: str, progress: PullProgress | None = None, *, force: bool = False) -> Path:
     """Download one asset (resumable, checksum-verified). Returns its local path.
 
     This is the only function in medmereport that uses the network; call it only on an explicit user
-    request (``medmereport models pull``).
+    request (``medmereport models pull`` or the in-app download). Refused when :func:`offline`.
+
+    Writes go to ``<file>.part`` and are moved into place only after the SHA-256 matches. A network error
+    keeps the partial file so the next pull resumes; a checksum mismatch, or any exception raised by
+    ``progress`` (e.g. the user cancelled), deletes it.
     """
+    if offline():
+        raise AssetError("Model downloads are turned off on this computer (MEDMEREPORT_OFFLINE=1).", "offline")
     asset = get(name)
     dest = path(name)
     if not force and verify(name):
@@ -242,26 +340,41 @@ def pull(name: str, progress: PullProgress | None = None, *, force: bool = False
     if start < asset.size:  # (start == size: complete partial, just verify)
         try:
             resp = _open(asset.url, start)
+        except AssetError:
+            raise
         except (urllib.error.URLError, OSError) as e:
             raise AssetError(f"download of {name} failed: {e}") from e
-        with resp as r:  # type: ignore[attr-defined]
-            status = getattr(r, "status", 200)
-            if start and status != 206:  # server ignored the Range header: restart
-                start = 0
-            mode = "ab" if start else "wb"
-            done = start
-            with open(part, mode) as f:
-                while True:
-                    chunk = r.read(_CHUNK)
-                    if not chunk:
-                        break
-                    f.write(chunk)
-                    done += len(chunk)
-                    if progress:
-                        progress(name, done, asset.size)
+        try:
+            with resp as r:  # type: ignore[attr-defined]
+                status = getattr(r, "status", 200)
+                if start and status != 206:  # server ignored the Range header: restart
+                    start = 0
+                mode = "ab" if start else "wb"
+                done = start
+                with open(part, mode) as f:
+                    while True:
+                        chunk = r.read(_CHUNK)
+                        if not chunk:
+                            break
+                        if done + len(chunk) > asset.size:
+                            raise AssetError(f"{name} is larger than expected", "checksum_mismatch")
+                        f.write(chunk)
+                        done += len(chunk)
+                        if progress:
+                            progress(name, done, asset.size)
+        except AssetError:
+            part.unlink(missing_ok=True)
+            raise
+        except (urllib.error.URLError, OSError) as e:  # network trouble mid-way: keep the .part to resume
+            raise AssetError(f"download of {name} failed: {e}") from e
+        except BaseException:  # cancelled or anything unexpected: leave nothing half-written behind
+            part.unlink(missing_ok=True)
+            raise
     if sha256_of(part) != asset.sha256:
         part.unlink(missing_ok=True)
-        raise AssetError(f"checksum mismatch for {name}; the partial download was deleted, please retry")
+        raise AssetError(
+            f"checksum mismatch for {name}; the partial download was deleted, please retry", "checksum_mismatch"
+        )
     os.replace(part, dest)
     return dest
 

@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from medmereport import __version__
 from medmereport.core.models import JobInfo, JobStatus, ProgressEvent
 from medmereport.core.paths import SessionTemp
+from medmereport.models import registry
 from medmereport.server.jobs import JobManager
 from medmereport.server.security import COOKIE, LocalSecurity
 
@@ -39,7 +40,8 @@ class Capabilities(BaseModel):
     platform: str
     onnxruntime: bool
     totalsegmentator: bool
-    offline: bool = True
+    offline: bool = True  # works without a network connection (always true)
+    model_downloads: bool = True  # the user may download optional models from the app (False: MEDMEREPORT_OFFLINE=1)
 
 
 class DemoJobIn(BaseModel):
@@ -92,6 +94,7 @@ def create_app(*, port: int, token: str, session: SessionTemp, dev_origins: tupl
             platform=f"{platform.system()} {platform.machine()}",
             onnxruntime=importlib.util.find_spec("onnxruntime") is not None,
             totalsegmentator=importlib.util.find_spec("totalsegmentator") is not None,
+            model_downloads=not registry.offline(),
         )
 
     @api.post("/jobs/demo", response_model=JobInfo)
@@ -154,6 +157,9 @@ def create_app(*, port: int, token: str, session: SessionTemp, dev_origins: tupl
     from medmereport.server.routes_model import make_router as model_router
 
     app.include_router(model_router(jobs, store))
+    from medmereport.server.routes_models import make_router as models_router
+
+    app.include_router(models_router(jobs))
     app.state.register_router = app.include_router  # extension point for feature routers
 
     # ---- static SPA ----

@@ -74,6 +74,15 @@ def cmd_doctor(_: argparse.Namespace) -> int:
     import pydicom
 
     print(f"{'DICOM decoders':<26}", ", ".join(sorted(_decoders(pydicom))), flush=True)
+    from medmereport.models import registry
+    from medmereport.models.service import bundle_info
+
+    for b in registry.bundles():
+        info = bundle_info(b)
+        state = "installed" if info.installed else f"not downloaded ({info.download_size / 1e6:.0f} MB)"
+        print(f"{'Models: ' + b:<26}{state}{'' if info.usable else ' - ' + (info.needs or '')}", flush=True)
+    dl = "off (MEDMEREPORT_OFFLINE=1)" if registry.offline() else "on request only (pinned hosts)"
+    print(f"{'Model downloads':<26}{dl}", flush=True)
     return 0
 
 

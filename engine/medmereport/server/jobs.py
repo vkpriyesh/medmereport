@@ -53,9 +53,25 @@ class JobContext:
             raise Cancelled()
 
 
+# The only job allowed to reach the network (hosts pinned in models/registry.py). Decided here, by target,
+# never by request parameters.
+PULL_TARGET = "medmereport.models.service:pull_job"
+
+
+def _allowed_hosts(target: str) -> set[str]:
+    if target != PULL_TARGET:
+        return set()
+    from medmereport.models.registry import allowed_hosts
+
+    return allowed_hosts()
+
+
 def _worker(target: str, job_id: str, params: dict[str, Any], workdir: str, q: Any, cancel: Any) -> None:
     ctx = JobContext(job_id, params, workdir, q, cancel)
     try:
+        from medmereport.core import egress
+
+        egress.install(_allowed_hosts(target))  # every job: loopback only, unless it is the model download
         mod, fn = target.rsplit(":", 1)
         result = getattr(importlib.import_module(mod), fn)(ctx)
         q.put(("done", result or {}))
@@ -78,6 +94,7 @@ class _Job:
     proc: Any = None
     cancel: Any = None
     queue: Any = None
+    params: dict[str, Any] = field(default_factory=dict)
 
 
 class JobManager:
@@ -91,7 +108,7 @@ class JobManager:
     def submit(self, kind: str, target: str, params: dict[str, Any]) -> JobInfo:
         jid = uuid.uuid4().hex[:12]
         info = JobInfo(id=jid, kind=kind, status=JobStatus.queued, created=datetime.now(UTC))
-        job = _Job(info=info)
+        job = _Job(info=info, params=dict(params))
         with self._lock:
             self.jobs[jid] = job
         threading.Thread(target=self._run, args=(job, target, params), daemon=True).start()
