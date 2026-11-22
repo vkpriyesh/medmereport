@@ -45,8 +45,8 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 | T1.11 | 2D viewer (port prototype SliceViewer as a Svelte component: W/L, zoom/pan, measure, cine, labels, localizer, sync panes, sagittal preset) | W | T1.9 | `web/src/lib/viewer2d/` | e2e: scroll, W/L, measure mm matches fixture spacing | done | agent-W |
 | T1.12 | Study dashboard (series cards, sequence explainers, disclaimer) | W | T1.10 | `web/src/routes/study/` | Lists all series grouped by region | done | agent-W |
 
-| T1.13 | Playwright e2e: synthetic encrypted disc → password → dashboard → viewer (scroll, W/L, measure) | Q | T1.10,T1.11 | `web/e2e/` | Runs in CI on built app | todo | |
-| T1.14 | Merge duplicate safe-zip extractors (`loose.extract_zip` vs `dcmburner.safe_extract_zip`) into `ingest/archive.py`; add `warnings` to OpenContext | I | T1.3,T1.5 | `engine/medmereport/ingest/` | One extractor, all ingest tests green | todo | |
+| T1.13 | Playwright e2e: synthetic encrypted disc → password → dashboard → viewer (scroll, W/L, measure) | Q | T1.10,T1.11 | `web/e2e/` | Runs in CI on built app | doing | agent-E |
+| T1.14 | Merge duplicate safe-zip extractors (`loose.extract_zip` vs `dcmburner.safe_extract_zip`) into `ingest/archive.py`; add `warnings` to OpenContext | I | T1.3,T1.5 | `engine/medmereport/ingest/` | One extractor, all ingest tests green | doing | agent-E |
 | T1.15 | Reconcile hand-written `web/src/lib/api/endpoints.ts` with generated OpenAPI types | W | T1.9 | `web/src/lib/api/` | No hand-written duplicates of engine models | done | agent-W |
 
 ## M2 — Brain MR 3D
@@ -79,7 +79,7 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 | T3.6 | 3D UI generalisation for body/spine/vessels (layers from regions.json, framing presets, group palette, body-scale explode/clip, system-grouped tree, graceful cards) + model options/backend picker | W | T2.9,T2.10 | `web/src/lib/viewer3d/`, `web/src/routes/model3d/` | Brain unchanged; body + spine mocks render with correct framing | done | agent-W |
 | T3.7 | Mock mode: synthetic body (CT) and spine models | W | T3.6 | `web/scripts/` | `npm run dev:mock` lists brain, body and spine demo studies | done | agent-W |
 | T3.8 | Validate ct_body/spine_mr on public datasets; real TotalSegmentator run with the `totalseg` extra (torch CPU index) | Q | T3.1,T3.2,T3.4 | `docs/VALIDATION.md` | Dice/runtime recorded; totalseg path verified offline | todo | |
-| T3.9 | M3 UI polish from e2e check: vessels model uses brain-only controls ("X-ray cortex", Inside, Lobes) because framing=head; neck arteries toggle off by default; spine has no summary numbers (canal/cord length, disc count); body/spine search placeholder; `model/options` backends as `{id, available, reason}` | W | T3.6 | web, pipelines | Each item visible-checked in Chrome | todo | |
+| T3.9 | M3 UI polish from e2e check: vessels model uses brain-only controls ("X-ray cortex", Inside, Lobes) because framing=head; neck arteries toggle off by default; spine has no summary numbers (canal/cord length, disc count); body/spine search placeholder; `model/options` backends as `{id, available, reason}` | W | T3.6 | web, pipelines | Each item visible-checked in Chrome | doing | agent-E (engine) + agent-UI (web) |
 
 ## M4 — X-ray
 | ID | Task | Lane | Deps | Paths | Acceptance | Status | Owner |
@@ -144,3 +144,4 @@ T8.1 Tauri v2 desktop app (engine sidecar) · T8.2 hosted web mode (OIDC, job qu
 2026-11-22 | agent-W | T1.15,T3.6,T2.14,T3.7 | done | 6556e7a API types aliased to generated OpenAPI + model options/backend picker; 718972c 3D UI for body/spine/vessels (framing, layers from regions.json, system palette, body-scale explode/clip/X-ray, primary_series 2D link) + BVH hover (900k tris: pick 3.6→0.1 ms, 108 fps on Intel UHD in Chrome); 2585f74 synthetic body+spine mocks. 99 web tests
 2026-11-22 | claude | M3 | verified | merged 4 lanes; layer ids normalised to vocab groups (3ba2b39). Full engine suite 745 passed/2 skipped, ruff+mypy clean; web 99 tests. Chrome e2e on real engine: synthetic CT disc -> ct_body (3 s, lungs/airway/bones, card + thumbs OK), spine disc -> spine_mr (3 s), TOF disc -> vessels (6 s, scalp fat excluded). Polish items logged as T3.9; real-data validation is T3.8
 2026-11-22 | claude | T2.12 | done | owner approved; public repo vkpriyesh/medmereport created, release `models-synthseg-2.0` published with LICENSE/NOTICE/SHA256SUMS; `models pull synthseg-*` verified (sha256 match). LICENSE + NOTICE added to repo
+2026-11-22 | agent-E | T1.13,T1.14,T3.9 | claim | T3.9 engine parts only (model/options backend shape, spine summary, vessels layers/framing); web side is agent-UI
