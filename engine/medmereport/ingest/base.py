@@ -59,6 +59,9 @@ class OpenContext:
     tmp: Path  # private session temp dir for this import (adapter may write here only)
     password: bytearray | None = None  # zeroed by the caller after open() returns
     progress: object | None = None  # callable(stage: str, pct: float, msg: str) or None
+    # Non-fatal, user-facing, PHI-free notes ("3 archive entries with unsafe paths were rejected"), added via
+    # ``ingest.notes.warn`` and shown with the import result. Never paths or patient identifiers.
+    warnings: list[str] = field(default_factory=list)
 
 
 @runtime_checkable

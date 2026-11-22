@@ -5,8 +5,7 @@ key/IV from EVP_BytesToKey with SHA-256, 1 iteration; older burners used MD5) wr
 + DICOMDIR. The disc also carries ``decrypt_win.exe``, ``run.bat``, ``autorun.inf`` and a viewer: none of
 these are ever opened or executed here. We re-implement the documented crypto with the user's own password.
 
-This module also hosts :func:`safe_extract_zip`, the zip-slip / zip-bomb-safe extractor shared by the
-encrypted-container adapters.
+The decrypted ZIP is unpacked by the shared hardened extractor in :mod:`medmereport.ingest.archive`.
 """
 
 from __future__ import annotations
@@ -14,23 +13,19 @@ from __future__ import annotations
 import hashlib
 import os
 import shutil
-import stat
 import tempfile
 import zipfile
-import zlib
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
-from pathlib import Path, PurePosixPath
-from typing import Any
+from pathlib import Path
 
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 from medmereport.core.logging import get_logger
+from medmereport.ingest import archive
+from medmereport.ingest.archive import ExtractBudget
 from medmereport.ingest.base import (
-    MAX_FILES,
-    MAX_RATIO,
-    MAX_TOTAL_UNCOMPRESSED,
     Detection,
     IngestError,
     OpenContext,
@@ -43,41 +38,6 @@ log = get_logger("medmereport.ingest.dcmburner")
 MAGIC = b"Salted__"
 ZIP_MAGIC = b"PK\x03\x04"
 CHUNK = 1 << 20
-# Files we never extract or hand on, whatever the container says.
-EXECUTABLE_EXT = frozenset(
-    {
-        ".exe",
-        ".bat",
-        ".cmd",
-        ".com",
-        ".inf",
-        ".dll",
-        ".msi",
-        ".ps1",
-        ".vbs",
-        ".vbe",
-        ".js",
-        ".jse",
-        ".wsf",
-        ".scr",
-        ".pif",
-        ".lnk",
-        ".sh",
-        ".app",
-        ".jar",
-        ".hta",
-        ".cpl",
-        ".reg",
-        ".sys",
-        ".so",
-        ".dylib",
-    }
-)
-_WIN_RESERVED = frozenset(
-    {"con", "prn", "aux", "nul", *(f"com{i}" for i in range(1, 10)), *(f"lpt{i}" for i in range(1, 10))}
-)
-_RATIO_MIN_SIZE = 1 << 20  # small entries may legitimately compress very well
-
 ProgressFn = Callable[[str, float, str], None]
 
 
@@ -111,106 +71,9 @@ def find_child(directory: Path, name: str) -> Path | None:
     return None
 
 
-# ---------------------------------------------------------------------------- safe extraction
-
-
-@dataclass
-class ArchiveBudget:
-    """Shared across nested archives of one import so limits apply to the whole import."""
-
-    total: int = 0
-    files: int = 0
-
-
-def _clean_member_name(name: str) -> PurePosixPath | None:
-    """Return a safe relative path for an archive entry, or None if the entry must be rejected."""
-    if "\x00" in name:
-        return None
-    norm = name.replace("\\", "/")
-    if norm.startswith("/") or (len(norm) > 1 and norm[1] == ":"):
-        return None
-    parts = [p for p in norm.split("/") if p not in ("", ".")]
-    if not parts:
-        return None
-    for p in parts:
-        if p == ".." or ":" in p or p.rstrip(" .") != p:
-            return None
-        if p.split(".")[0].lower() in _WIN_RESERVED:
-            return None
-    return PurePosixPath(*parts)
-
-
-def safe_extract_zip(
-    zf: Any,
-    dest: Path,
-    *,
-    pwd: bytes | None = None,
-    budget: ArchiveBudget | None = None,
-    progress: ProgressFn | None = None,
-    stage: str = "extract",
-) -> list[Path]:
-    """Extract a ``zipfile.ZipFile`` / ``pyzipper.AESZipFile`` into ``dest`` with zip-slip and zip-bomb checks.
-
-    Unsafe entries (absolute paths, ``..``, drive letters, symlinks, executables) are skipped.
-    Exceeding the size / count / ratio limits raises ``IngestError("too_large")``. Corrupt data raises
-    ``IngestError("corrupt")``. ``RuntimeError`` (bad password in pyzipper) propagates to the caller.
-    """
-    budget = budget if budget is not None else ArchiveBudget()
-    dest.mkdir(parents=True, exist_ok=True)
-    root = dest.resolve()
-    infos = zf.infolist()
-    out: dict[Path, None] = {}
-    skipped = 0
-    for i, info in enumerate(infos):
-        if info.is_dir():
-            continue
-        rel = _clean_member_name(info.filename)
-        mode = (info.external_attr >> 16) & 0xFFFF
-        if rel is None or stat.S_ISLNK(mode) or rel.suffix.lower() in EXECUTABLE_EXT:
-            skipped += 1
-            continue
-        target = (root / rel).resolve()
-        if not target.is_relative_to(root) or target == root:
-            skipped += 1
-            continue
-        budget.files += 1
-        if budget.files > MAX_FILES:
-            raise IngestError("too_large", "This archive contains too many files.")
-        declared = int(info.file_size)
-        if budget.total + declared > MAX_TOTAL_UNCOMPRESSED:
-            raise IngestError("too_large", "This archive is too large to unpack.")
-        if declared > _RATIO_MIN_SIZE and declared > MAX_RATIO * max(int(info.compress_size), 1):
-            raise IngestError("too_large", "This archive looks like a zip bomb and was not unpacked.")
-        target.parent.mkdir(parents=True, exist_ok=True)
-        written = 0
-        try:
-            with zf.open(info, pwd=pwd) as src, open(target, "wb") as dst:
-                while True:
-                    block = src.read(CHUNK)
-                    if not block:
-                        break
-                    written += len(block)
-                    if written > declared:  # header lied about the size
-                        raise IngestError("too_large", "This archive looks like a zip bomb and was not unpacked.")
-                    dst.write(block)
-        except (IngestError, RuntimeError):
-            target.unlink(missing_ok=True)
-            raise
-        except (OSError, EOFError, ValueError, zlib.error, zipfile.BadZipFile) as exc:
-            target.unlink(missing_ok=True)
-            raise IngestError("corrupt", "Part of this archive is damaged and could not be read.") from exc
-        except Exception as exc:  # e.g. pyzipper.BadZipFile (not a subclass of zipfile.BadZipFile)
-            target.unlink(missing_ok=True)
-            if type(exc).__name__ in ("BadZipFile", "BadZipfile", "LargeZipFile"):
-                raise IngestError("corrupt", "Part of this archive is damaged and could not be read.") from exc
-            raise
-        budget.total += written
-        out[target] = None
-        if progress is not None and (i % 50 == 0 or i == len(infos) - 1):
-            progress(stage, 100.0 * (i + 1) / max(len(infos), 1), "")
-    if skipped:
-        log.warning("skipped %d unsafe or executable archive entries", skipped)
-    return list(out)
+# kept for importers of the old names (radiant, plugins); the implementation lives in ingest.archive
+ArchiveBudget = ExtractBudget
+safe_extract_zip = archive.extract_zip
 
 
 # ---------------------------------------------------------------------------- crypto
@@ -290,13 +153,15 @@ class DcmBurnerAdapter:
         progress = _progress(ctx)
         work = Path(tempfile.mkdtemp(prefix="dcmburner-", dir=ctx.tmp))
         try:
-            files = self._decrypt_and_extract(enc, work, ctx.password, progress)
+            files = self._decrypt_and_extract(enc, work, ctx.password, progress, ctx)
         except BaseException:
             shutil.rmtree(work, ignore_errors=True)
             raise
         yield from files
 
-    def _decrypt_and_extract(self, enc: Path, work: Path, password: bytearray, progress: ProgressFn) -> list[Path]:
+    def _decrypt_and_extract(
+        self, enc: Path, work: Path, password: bytearray, progress: ProgressFn, ctx: OpenContext | None = None
+    ) -> list[Path]:
         try:
             size = enc.stat().st_size
             with open(enc, "rb") as f:
@@ -330,7 +195,7 @@ class DcmBurnerAdapter:
             progress("extract", 0.0, "unpacking")
             try:
                 with zipfile.ZipFile(plain) as zf:
-                    files = safe_extract_zip(zf, work / "files", progress=progress)
+                    files = archive.extract_zip(zf, work / "files", ctx=ctx, progress=progress)
             except zipfile.BadZipFile as exc:
                 raise IngestError("corrupt", "The decrypted disc archive is damaged.") from exc
         finally:

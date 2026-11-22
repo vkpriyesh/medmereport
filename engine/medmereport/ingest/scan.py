@@ -11,7 +11,7 @@ from medmereport.dicom.series import Instance, SeriesGroup, dedupe, group_series
 from medmereport.dicom.sniff import is_dicom
 from medmereport.ingest import base
 from medmereport.ingest.base import IngestAdapter, IngestError, OpenContext
-from medmereport.ingest.notes import ScanContext, progress
+from medmereport.ingest.notes import progress
 from medmereport.ingest.registry import detect_best, get_adapter
 
 _IMAGE_MAGICS: tuple[tuple[int, bytes, str], ...] = (
@@ -124,30 +124,29 @@ def scan_source(src: Path, ctx: OpenContext, adapter: str | None = None) -> Scan
     Raises :class:`IngestError` (``unsupported``, ``password_required``, ``wrong_password``,
     ``too_large``, ``no_images``). Damaged files never raise; they are counted in ``warnings``.
     """
-    sctx = ScanContext.wrap(ctx)
     chosen = _choose_adapter(src, adapter)
     res = ScanResult(adapter=chosen.name)
     insts: list[Instance] = []
     tally = _Tally()
-    progress(sctx, "scan", 0, "Looking for scans")
-    for path in chosen.open(src, sctx):
+    progress(ctx, "scan", 0, "Looking for scans")
+    for path in chosen.open(src, ctx):
         tally.files += 1
         if tally.files > base.MAX_FILES:
             raise IngestError("too_large", "This source contains too many files.")
         if tally.files % _PROGRESS_EVERY == 0:
-            progress(sctx, "scan", 90 * (1 - math.exp(-tally.files / 2000)), f"{tally.files} files examined")
+            progress(ctx, "scan", 90 * (1 - math.exp(-tally.files / 2000)), f"{tally.files} files examined")
         if is_dicom(path):
-            _handle_dicom(path, sctx, res, insts, tally)
+            _handle_dicom(path, ctx, res, insts, tally)
         elif image_kind(path) is not None:
             res.images.append(path)
         else:
             tally.unknown += 1
-    progress(sctx, "group", 95, "Grouping series")
+    progress(ctx, "group", 95, "Grouping series")
     unique, duplicates = dedupe(insts)
     res.series = group_series(unique)
     _summarise(res, tally, duplicates)
-    res.warnings = sctx.warnings + res.warnings
+    res.warnings = [*ctx.warnings, *res.warnings]  # adapter notes (ctx.warnings) first
     if not res.series and not res.images and not res.documents:
         raise IngestError("no_images", "No scans or images were found here.", adapter=chosen.name)
-    progress(sctx, "group", 100, f"{len(res.series)} series found")
+    progress(ctx, "group", 100, f"{len(res.series)} series found")
     return res

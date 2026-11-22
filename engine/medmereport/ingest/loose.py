@@ -9,21 +9,20 @@ look like executables, autorun files or bundled viewers are never yielded.
 from __future__ import annotations
 
 import os
-import re
 import shutil
 import tempfile
 import zipfile
 from collections.abc import Iterator
-from dataclasses import dataclass
-from pathlib import Path, PurePosixPath
-from typing import IO, Literal
+from pathlib import Path
+from typing import Literal
 
 import py7zr
 import pyzipper
 from py7zr.exceptions import PasswordRequired as SevenZipPasswordRequired
 
 from medmereport.dicom.sniff import has_dicm_magic
-from medmereport.ingest import base
+from medmereport.ingest import archive, base
+from medmereport.ingest.archive import ExtractBudget, check_ratio, safe_member_path
 from medmereport.ingest.base import Detection, IngestError, OpenContext, PasswordRequired, WrongPassword
 from medmereport.ingest.notes import warn
 
@@ -40,26 +39,6 @@ SKIP_DIR_NAMES = frozenset({
     "viewer", "viewers", "weasis", "jre", "java", "radiant", "microdicom", "efilm", "k-pacs", "onis",
     "imagej", "__macosx", "$recycle.bin", "system volume information",
 })  # fmt: skip
-_WIN_RESERVED = re.compile(r"^(con|prn|aux|nul|com\d|lpt\d)(\..*)?$", re.IGNORECASE)
-_RATIO_MIN_BYTES = 1 << 20  # small members may legitimately compress extremely well
-_CHUNK = 1 << 20
-
-
-@dataclass
-class ExtractBudget:
-    """Cumulative extraction limits for one import (shared across nested archives)."""
-
-    total_bytes: int = 0
-    files: int = 0
-
-    def charge(self, nbytes: int = 0, nfiles: int = 0) -> None:
-        """Account for ``nbytes``/``nfiles``; raise ``IngestError('too_large')`` past the limits."""
-        self.total_bytes += nbytes
-        self.files += nfiles
-        if self.total_bytes > base.MAX_TOTAL_UNCOMPRESSED:
-            raise IngestError("too_large", "This archive expands to more data than medmereport will unpack.")
-        if self.files > base.MAX_FILES:
-            raise IngestError("too_large", "This archive contains too many files.")
 
 
 def should_skip(path: Path) -> bool:
@@ -84,45 +63,6 @@ def archive_kind(path: Path) -> ArchiveKind | None:
     return None
 
 
-def safe_member_path(dest: Path, name: str) -> Path | None:
-    """Map an archive member name to a path inside ``dest``, or None if it is unsafe."""
-    if not name or "\x00" in name:
-        return None
-    norm = name.replace("\\", "/")
-    if norm.startswith("/") or re.match(r"^[A-Za-z]:", norm):
-        return None
-    parts = [p for p in PurePosixPath(norm).parts if p not in ("", ".")]
-    if not parts or any(p == ".." or _WIN_RESERVED.match(p) or p.endswith((" ", ".")) for p in parts):
-        return None
-    target = dest.joinpath(*parts)
-    try:
-        target.resolve().relative_to(dest.resolve())
-    except ValueError:
-        return None
-    return target
-
-
-def _copy_limited(src: IO[bytes], dst: Path, declared: int, budget: ExtractBudget) -> None:
-    """Stream ``src`` to ``dst`` charging the budget; never trust the declared size."""
-    written = 0
-    try:
-        with dst.open("wb") as out:
-            while chunk := src.read(_CHUNK):
-                written += len(chunk)
-                if written > declared:
-                    raise IngestError("too_large", "An archive member is larger than it claims to be.")
-                budget.charge(len(chunk))
-                out.write(chunk)
-    except BaseException:
-        dst.unlink(missing_ok=True)
-        raise
-
-
-def _check_ratio(uncompressed: int, compressed: int) -> None:
-    if uncompressed > _RATIO_MIN_BYTES and uncompressed > base.MAX_RATIO * max(compressed, 1):
-        raise IngestError("too_large", "This archive looks like a decompression bomb and was not unpacked.")
-
-
 def _zip_password(zf: zipfile.ZipFile, ctx: OpenContext) -> None:
     if not any(info.flag_bits & 0x1 for info in zf.infolist()):
         return
@@ -132,33 +72,17 @@ def _zip_password(zf: zipfile.ZipFile, ctx: OpenContext) -> None:
 
 
 def extract_zip(path: Path, dest: Path, ctx: OpenContext, budget: ExtractBudget) -> None:
-    """Safely extract a (possibly AES/ZipCrypto encrypted) ZIP into ``dest``."""
+    """Safely extract a (possibly AES/ZipCrypto encrypted) ZIP into ``dest`` (``ingest.archive``)."""
     try:
         zf = pyzipper.AESZipFile(path)
-    except (zipfile.BadZipFile, OSError, ValueError) as exc:
+    except Exception as exc:  # noqa: BLE001 - zipfile and pyzipper raise different BadZipFile classes
         raise IngestError("unsupported", "A ZIP archive is damaged and could not be opened.") from exc
     with zf:
-        infos = [i for i in zf.infolist() if not i.is_dir()]
-        budget.charge(0, len(infos))
-        for info in infos:
-            _check_ratio(info.file_size, info.compress_size)
         _zip_password(zf, ctx)
-        unsafe = 0
-        for info in infos:
-            target = safe_member_path(dest, info.filename)
-            if target is None:
-                unsafe += 1
-                continue
-            target.parent.mkdir(parents=True, exist_ok=True)
-            try:
-                with zf.open(info) as member:
-                    _copy_limited(member, target, info.file_size, budget)
-            except RuntimeError as exc:  # bad password
-                raise WrongPassword("loose") from exc
-            except (zipfile.BadZipFile, zipfile.LargeZipFile, OSError, EOFError, ValueError):
-                warn(ctx, "Some files inside an archive were damaged and were skipped.")
-        if unsafe:
-            warn(ctx, f"{unsafe} archive entries with unsafe paths were rejected.")
+        try:
+            archive.extract_zip(zf, dest, ctx=ctx, budget=budget, on_damaged="skip")
+        except RuntimeError as exc:  # bad password
+            raise WrongPassword("loose") from exc
 
 
 def extract_7z(path: Path, dest: Path, ctx: OpenContext, budget: ExtractBudget) -> None:
@@ -170,7 +94,7 @@ def extract_7z(path: Path, dest: Path, ctx: OpenContext, budget: ExtractBudget) 
                 raise PasswordRequired("loose", hint="7z")
             entries = [e for e in z.list() if not e.is_directory]
             total = sum(int(e.uncompressed or 0) for e in entries)
-            _check_ratio(total, path.stat().st_size)
+            check_ratio(total, path.stat().st_size)
             budget.charge(total, len(entries))
             targets = [e.filename for e in entries if not e.is_symlink and safe_member_path(dest, e.filename)]
             if len(targets) < len(entries):

@@ -5,8 +5,9 @@ from pathlib import Path
 import pytest
 from pydicom import dcmread
 
+from medmereport.ingest.archive import extract_zip as safe_extract_zip
 from medmereport.ingest.base import IngestAdapter, IngestError, OpenContext, PasswordRequired, WrongPassword, zero
-from medmereport.ingest.dcmburner import DcmBurnerAdapter, safe_extract_zip
+from medmereport.ingest.dcmburner import DcmBurnerAdapter
 from tests.fixtures.containers import N_SMALL_STUDY, make_dcmburner_disc, openssl_enc
 
 PW = "Corr3ct-Horse"

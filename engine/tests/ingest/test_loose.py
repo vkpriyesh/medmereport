@@ -11,7 +11,6 @@ import pyzipper
 from medmereport.ingest import base
 from medmereport.ingest.base import IngestError, OpenContext, PasswordRequired, WrongPassword
 from medmereport.ingest.loose import LooseAdapter, archive_kind, safe_member_path, should_skip, walk
-from medmereport.ingest.notes import ScanContext
 from medmereport.ingest.scan import scan_source
 from tests.dicom.test_sniff_read import PDF, write_pdf_object
 from tests.fixtures.synth import phantom_volume, write_series, write_study
@@ -19,10 +18,10 @@ from tests.fixtures.synth import phantom_volume, write_series, write_study
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
 
 
-def make_ctx(tmp_path: Path, password: str | None = None) -> ScanContext:
+def make_ctx(tmp_path: Path, password: str | None = None) -> OpenContext:
     t = tmp_path / "session"
     t.mkdir(parents=True, exist_ok=True)
-    return ScanContext(tmp=t, password=bytearray(password.encode()) if password else None)
+    return OpenContext(tmp=t, password=bytearray(password.encode()) if password else None)
 
 
 def small_study(out: Path) -> Path:

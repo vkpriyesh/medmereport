@@ -15,6 +15,8 @@ from pathlib import Path
 import pyzipper
 
 from medmereport.core.logging import get_logger
+from medmereport.ingest import archive
+from medmereport.ingest.archive import ExtractBudget
 from medmereport.ingest.base import (
     MAX_NESTING,
     Detection,
@@ -23,7 +25,7 @@ from medmereport.ingest.base import (
     PasswordRequired,
     WrongPassword,
 )
-from medmereport.ingest.dcmburner import ArchiveBudget, ProgressFn, _progress, find_child, safe_extract_zip
+from medmereport.ingest.dcmburner import ProgressFn, _progress, find_child
 
 log = get_logger("medmereport.ingest.radiant")
 
@@ -88,7 +90,7 @@ class RadiantAdapter:
         yield from files
 
     def _open_zip(
-        self, path: Path, dest: Path, ctx: OpenContext, budget: ArchiveBudget, progress: ProgressFn
+        self, path: Path, dest: Path, ctx: OpenContext, budget: ExtractBudget, progress: ProgressFn
     ) -> list[Path]:
         try:
             zf = pyzipper.AESZipFile(path)
@@ -110,14 +112,14 @@ class RadiantAdapter:
                 except Exception as exc:
                     raise _corrupt(exc) from exc
             try:
-                return safe_extract_zip(zf, dest, pwd=pwd, budget=budget, progress=progress)
+                return archive.extract_zip(zf, dest, ctx=ctx, pwd=pwd, budget=budget, progress=progress)
             except RuntimeError as exc:  # a later entry with a different password
                 raise WrongPassword(self.name) from exc
             finally:
                 del pwd
 
     def _extract(self, z: Path, work: Path, ctx: OpenContext, progress: ProgressFn) -> list[Path]:
-        budget = ArchiveBudget()
+        budget = ExtractBudget()
         progress("decrypt", 0.0, "opening encrypted archive")
         files = self._open_zip(z, work / "outer", ctx, budget, progress)
         depth = 1

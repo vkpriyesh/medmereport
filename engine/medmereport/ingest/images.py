@@ -25,8 +25,9 @@ import numpy as np
 from PIL import Image, ImageOps, ImageSequence
 
 from medmereport.core.logging import get_logger
+from medmereport.ingest.archive import EXECUTABLE_EXT
 from medmereport.ingest.base import Detection, IngestError, OpenContext
-from medmereport.ingest.dcmburner import EXECUTABLE_EXT, _progress, find_child
+from medmereport.ingest.dcmburner import _progress, find_child
 
 log = get_logger("medmereport.ingest.images")
 
