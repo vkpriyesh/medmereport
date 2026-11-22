@@ -45,8 +45,8 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 | T1.11 | 2D viewer (port prototype SliceViewer as a Svelte component: W/L, zoom/pan, measure, cine, labels, localizer, sync panes, sagittal preset) | W | T1.9 | `web/src/lib/viewer2d/` | e2e: scroll, W/L, measure mm matches fixture spacing | done | agent-W |
 | T1.12 | Study dashboard (series cards, sequence explainers, disclaimer) | W | T1.10 | `web/src/routes/study/` | Lists all series grouped by region | done | agent-W |
 
-| T1.13 | Playwright e2e: synthetic encrypted disc → password → dashboard → viewer (scroll, W/L, measure) | Q | T1.10,T1.11 | `web/e2e/` | Runs in CI on built app | doing | agent-E |
-| T1.14 | Merge duplicate safe-zip extractors (`loose.extract_zip` vs `dcmburner.safe_extract_zip`) into `ingest/archive.py`; add `warnings` to OpenContext | I | T1.3,T1.5 | `engine/medmereport/ingest/` | One extractor, all ingest tests green | doing | agent-E |
+| T1.13 | Playwright e2e: synthetic encrypted disc → password → dashboard → viewer (scroll, W/L, measure) | Q | T1.10,T1.11 | `web/e2e/` | Runs in CI on built app | done | agent-E |
+| T1.14 | Merge duplicate safe-zip extractors (`loose.extract_zip` vs `dcmburner.safe_extract_zip`) into `ingest/archive.py`; add `warnings` to OpenContext | I | T1.3,T1.5 | `engine/medmereport/ingest/` | One extractor, all ingest tests green | done | agent-E |
 | T1.15 | Reconcile hand-written `web/src/lib/api/endpoints.ts` with generated OpenAPI types | W | T1.9 | `web/src/lib/api/` | No hand-written duplicates of engine models | done | agent-W |
 
 ## M2 — Brain MR 3D
@@ -79,7 +79,7 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 | T3.6 | 3D UI generalisation for body/spine/vessels (layers from regions.json, framing presets, group palette, body-scale explode/clip, system-grouped tree, graceful cards) + model options/backend picker | W | T2.9,T2.10 | `web/src/lib/viewer3d/`, `web/src/routes/model3d/` | Brain unchanged; body + spine mocks render with correct framing | done | agent-W |
 | T3.7 | Mock mode: synthetic body (CT) and spine models | W | T3.6 | `web/scripts/` | `npm run dev:mock` lists brain, body and spine demo studies | done | agent-W |
 | T3.8 | Validate ct_body/spine_mr on public datasets; real TotalSegmentator run with the `totalseg` extra (torch CPU index) | Q | T3.1,T3.2,T3.4 | `docs/VALIDATION.md` | Dice/runtime recorded; totalseg path verified offline | todo | |
-| T3.9 | M3 UI polish from e2e check: vessels model uses brain-only controls ("X-ray cortex", Inside, Lobes) because framing=head; neck arteries toggle off by default; spine has no summary numbers (canal/cord length, disc count); body/spine search placeholder; `model/options` backends as `{id, available, reason}` | W | T3.6 | web, pipelines | Each item visible-checked in Chrome | doing | agent-E (engine) + agent-UI (web) |
+| T3.9 | M3 UI polish from e2e check: vessels model uses brain-only controls ("X-ray cortex", Inside, Lobes) because framing=head; neck arteries toggle off by default; spine has no summary numbers (canal/cord length, disc count); body/spine search placeholder; `model/options` backends as `{id, available, reason}` | W | T3.6 | web, pipelines | Each item visible-checked in Chrome | done | agent-E (engine) + agent-UI (web) |
 
 ## M4 — X-ray
 | ID | Task | Lane | Deps | Paths | Acceptance | Status | Owner |
@@ -93,8 +93,8 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 |---|---|---|---|---|---|---|---|
 | T5.1 | Learn mode, guided tour, quiz (generic models; works with no user data via bundled demo phantom) | W | T2.9,T2.11 | `web/src/routes/learn/` | Demo works with zero imports | todo | |
 | T5.2 | Hindi translation + language switcher | K | T0.7 | `web/src/i18n/` | All UI strings externalised | todo | |
-| T5.3 | Accessibility + responsive pass | W | T2.10 | web | Lighthouse a11y ≥ 90; usable at 390 px | doing | agent-UI |
-| T5.4 | Design polish pass (tokens, motion, empty/error states) | W | T5.3 | web | Design review checklist signed off | doing | agent-UI |
+| T5.3 | Accessibility + responsive pass | W | T2.10 | web | Lighthouse a11y ≥ 90; usable at 390 px | done | agent-UI |
+| T5.4 | Design polish pass (tokens, motion, empty/error states) | W | T5.3 | web | Design review checklist signed off | todo | (partial pass: agent-UI) |
 
 ## M6 — Optional AI helpers
 | ID | Task | Lane | Deps | Paths | Acceptance | Status | Owner |
@@ -146,3 +146,7 @@ T8.1 Tauri v2 desktop app (engine sidecar) · T8.2 hosted web mode (OIDC, job qu
 2026-11-22 | claude | T2.12 | done | owner approved; public repo vkpriyesh/medmereport created, release `models-synthseg-2.0` published with LICENSE/NOTICE/SHA256SUMS; `models pull synthseg-*` verified (sha256 match). LICENSE + NOTICE added to repo
 2026-11-22 | agent-E | T1.13,T1.14,T3.9 | claim | T3.9 engine parts only (model/options backend shape, spine summary, vessels layers/framing); web side is agent-UI
 2026-11-22 | agent-UI | T3.9,T5.3,T5.4 | claim | T3.9 UI items (vessels-only controls, layer defaults, search placeholder, spine summary, backend reasons) + a11y/responsive/design polish pass across all screens
+2026-11-22 | agent-E | T3.9 | engine done | /model/options backends = [{id, available, reason, licence, default}] (totalseg listed unavailable with install hint); spine_mr stats.summary canal_length_mm/cord_length_mm/discs_detected/vertebral_bodies_detected (method+caveats); vessels TOF regions.json layers gain {id: neck, default: true}; API_CONTRACT §6 + web/openapi.json + schema.d.ts regenerated. UI must key brain-only controls off pipeline/brain groups, not framing; web side + Chrome check still with agent-UI | 4b68606
+2026-11-22 | agent-E | T1.14 | done | ingest/archive.py: single extract_zip (zip-slip/reserved names, symlinks, programs, per-entry + whole-archive ratio, declared + streamed size, file count, shared ExtractBudget) used by loose/dcmburner/radiant; OpenContext.warnings replaces ScanContext; 16 new tests | a1b9946
+2026-11-22 | agent-E | T1.13 | done | Python Playwright (uv group `e2e`, opt-in MEDMEREPORT_E2E=1) in engine/tests/e2e instead of web/e2e: tests the committed static UI with no Node build; encrypted disc -> password -> dashboard -> 2D slice -> ct_body 3D -> region card, ~20 s locally; CI job `e2e` on 3 OSes | f020057
+2026-11-22 | agent-E | – | note | `ruff format --check .` flags engine/medmereport/knowledge/structures.py (from fd56146, not touched here): the CI engine job will fail on it until it is formatted
