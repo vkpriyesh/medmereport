@@ -47,7 +47,7 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 
 | T1.13 | Playwright e2e: synthetic encrypted disc → password → dashboard → viewer (scroll, W/L, measure) | Q | T1.10,T1.11 | `web/e2e/` | Runs in CI on built app | todo | |
 | T1.14 | Merge duplicate safe-zip extractors (`loose.extract_zip` vs `dcmburner.safe_extract_zip`) into `ingest/archive.py`; add `warnings` to OpenContext | I | T1.3,T1.5 | `engine/medmereport/ingest/` | One extractor, all ingest tests green | todo | |
-| T1.15 | Reconcile hand-written `web/src/lib/api/endpoints.ts` with generated OpenAPI types | W | T1.9 | `web/src/lib/api/` | No hand-written duplicates of engine models | doing | agent-W |
+| T1.15 | Reconcile hand-written `web/src/lib/api/endpoints.ts` with generated OpenAPI types | W | T1.9 | `web/src/lib/api/` | No hand-written duplicates of engine models | done | agent-W |
 
 ## M2 — Brain MR 3D
 | ID | Task | Lane | Deps | Paths | Acceptance | Status | Owner |
@@ -66,7 +66,7 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 
 | T2.12 | Publish SynthSeg ONNX weights as GitHub release assets (`models-synthseg-2.0`) on vkpriyesh/medmereport so `models pull synthseg-*` works | D | T2.4 | release | Hashes match registry | blocked | needs owner approval to publish (outward-facing) |
 | T2.13 | Head/skin surface layer (`H__skin`) + TOF vessel pipeline hookup in brain model | G | T2.6,T3.3 | geometry/ | Layers toggle in UI | done | agent-V |
-| T2.14 | Hover raycast acceleration (BVH) for ~900k-tri scenes; real-hardware fps check | W | T2.9 | web/src/lib/viewer3d | ≥45 fps on integrated GPU | doing | agent-W |
+| T2.14 | Hover raycast acceleration (BVH) for ~900k-tri scenes; real-hardware fps check | W | T2.9 | web/src/lib/viewer3d | ≥45 fps on integrated GPU | done | agent-W |
 
 ## M3 — CT, vessels, spine
 | ID | Task | Lane | Deps | Paths | Acceptance | Status | Owner |
@@ -76,8 +76,8 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 | T3.3 | `vessels` pipeline (prototype top-hat + shape filters, CTA variant) | P | T2.1 | `pipelines/vessels/` | Public TOF → vessel mesh, no scalp fat | done | agent-V |
 | T3.4 | `spine_mr` pipeline + sagittal-first layout | P | T2.1 | `pipelines/spine_mr/` | Cord/CSF/vertebra surfaces | done | agent-CT |
 | T3.5 | Knowledge base: body organs, bones, vessels, spine | K | T2.11 | `knowledge/` | Covers all TotalSegmentator open labels | done | agent-K |
-| T3.6 | 3D UI generalisation for body/spine/vessels (layers from regions.json, framing presets, group palette, body-scale explode/clip, system-grouped tree, graceful cards) + model options/backend picker | W | T2.9,T2.10 | `web/src/lib/viewer3d/`, `web/src/routes/model3d/` | Brain unchanged; body + spine mocks render with correct framing | doing | agent-W |
-| T3.7 | Mock mode: synthetic body (CT) and spine models | W | T3.6 | `web/scripts/` | `npm run dev:mock` lists brain, body and spine demo studies | doing | agent-W |
+| T3.6 | 3D UI generalisation for body/spine/vessels (layers from regions.json, framing presets, group palette, body-scale explode/clip, system-grouped tree, graceful cards) + model options/backend picker | W | T2.9,T2.10 | `web/src/lib/viewer3d/`, `web/src/routes/model3d/` | Brain unchanged; body + spine mocks render with correct framing | done | agent-W |
+| T3.7 | Mock mode: synthetic body (CT) and spine models | W | T3.6 | `web/scripts/` | `npm run dev:mock` lists brain, body and spine demo studies | done | agent-W |
 | T3.8 | Validate ct_body/spine_mr on public datasets; real TotalSegmentator run with the `totalseg` extra (torch CPU index) | Q | T3.1,T3.2,T3.4 | `docs/VALIDATION.md` | Dice/runtime recorded; totalseg path verified offline | todo | |
 
 ## M4 — X-ray
@@ -140,3 +140,4 @@ T8.1 Tauri v2 desktop app (engine sidecar) · T8.2 hosted web mode (OIDC, job qu
 2026-11-22 | agent-CT | T3.4 | done | spine_mr classical (CSF, cord, vertebral bodies, discs from z-profile peaks; levels not numbered -> vertebral_column; primary_series = sagittal). Phantom: 2.7 s | f55e685
 2026-11-22 | agent-CT | T3.2 | done | TotalSegmentator backend: open-task allow-list guard, total --fast only, weights via `models pull totalseg-total-fast` (pinned 135 MB zip; models/registry.py additive), telemetry/downloads stubbed + sockets blocked; optional extra `totalseg` in pyproject (uv.lock regenerated; NOT installed in the dev venv: torch + nnU-Net too heavy) so tested with mocks; licence notes in RESEARCH.md. A real-weights run is still unverified -> T3.8 | 9881f6e
 2026-11-22 | agent-CT | T3.8 | new | real-data validation + end-to-end TotalSegmentator run
+2026-11-22 | agent-W | T1.15,T3.6,T2.14,T3.7 | done | 6556e7a API types aliased to generated OpenAPI + model options/backend picker; 718972c 3D UI for body/spine/vessels (framing, layers from regions.json, system palette, body-scale explode/clip/X-ray, primary_series 2D link) + BVH hover (900k tris: pick 3.6→0.1 ms, 108 fps on Intel UHD in Chrome); 2585f74 synthetic body+spine mocks. 99 web tests
