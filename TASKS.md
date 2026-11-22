@@ -93,8 +93,8 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 |---|---|---|---|---|---|---|---|
 | T5.1 | Learn mode, guided tour, quiz (generic models; works with no user data via bundled demo phantom) | W | T2.9,T2.11 | `web/src/routes/learn/` | Demo works with zero imports | todo | |
 | T5.2 | Hindi translation + language switcher | K | T0.7 | `web/src/i18n/` | All UI strings externalised | todo | |
-| T5.3 | Accessibility + responsive pass | W | T2.10 | web | Lighthouse a11y ≥ 90; usable at 390 px | todo | |
-| T5.4 | Design polish pass (tokens, motion, empty/error states) | W | T5.3 | web | Design review checklist signed off | todo | |
+| T5.3 | Accessibility + responsive pass | W | T2.10 | web | Lighthouse a11y ≥ 90; usable at 390 px | doing | agent-UI |
+| T5.4 | Design polish pass (tokens, motion, empty/error states) | W | T5.3 | web | Design review checklist signed off | doing | agent-UI |
 
 ## M6 — Optional AI helpers
 | ID | Task | Lane | Deps | Paths | Acceptance | Status | Owner |
@@ -145,3 +145,4 @@ T8.1 Tauri v2 desktop app (engine sidecar) · T8.2 hosted web mode (OIDC, job qu
 2026-11-22 | claude | M3 | verified | merged 4 lanes; layer ids normalised to vocab groups (3ba2b39). Full engine suite 745 passed/2 skipped, ruff+mypy clean; web 99 tests. Chrome e2e on real engine: synthetic CT disc -> ct_body (3 s, lungs/airway/bones, card + thumbs OK), spine disc -> spine_mr (3 s), TOF disc -> vessels (6 s, scalp fat excluded). Polish items logged as T3.9; real-data validation is T3.8
 2026-11-22 | claude | T2.12 | done | owner approved; public repo vkpriyesh/medmereport created, release `models-synthseg-2.0` published with LICENSE/NOTICE/SHA256SUMS; `models pull synthseg-*` verified (sha256 match). LICENSE + NOTICE added to repo
 2026-11-22 | agent-E | T1.13,T1.14,T3.9 | claim | T3.9 engine parts only (model/options backend shape, spine summary, vessels layers/framing); web side is agent-UI
+2026-11-22 | agent-UI | T3.9,T5.3,T5.4 | claim | T3.9 UI items (vessels-only controls, layer defaults, search placeholder, spine summary, backend reasons) + a11y/responsive/design polish pass across all screens
