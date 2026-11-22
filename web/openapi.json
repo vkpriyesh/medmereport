@@ -337,6 +337,50 @@
     }
    }
   },
+  "/api/knowledge": {
+   "get": {
+    "summary": "Knowledge",
+    "operationId": "knowledge_api_knowledge_get",
+    "parameters": [
+     {
+      "name": "lang",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "enum": [
+        "en",
+        "hi"
+       ],
+       "type": "string",
+       "default": "en",
+       "title": "Lang"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Knowledge"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/inspect": {
    "post": {
     "summary": "Inspect",
@@ -514,10 +558,127 @@
      }
     }
    }
+  },
+  "/api/studies/{study_id}/model/options": {
+   "get": {
+    "summary": "Model Options",
+    "operationId": "model_options_api_studies__study_id__model_options_get",
+    "parameters": [
+     {
+      "name": "study_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Study Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelOptions"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/studies/{study_id}/model": {
+   "post": {
+    "summary": "Start Model",
+    "operationId": "start_model_api_studies__study_id__model_post",
+    "parameters": [
+     {
+      "name": "study_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Study Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "anyOf": [
+         {
+          "$ref": "#/components/schemas/ModelIn"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Body"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JobInfo"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
   "schemas": {
+   "Arteries": {
+    "properties": {
+     "overview": {
+      "type": "string",
+      "title": "Overview"
+     },
+     "vessels": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/Vessel"
+      },
+      "type": "object",
+      "title": "Vessels"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "overview",
+     "vessels"
+    ],
+    "title": "Arteries"
+   },
    "Capabilities": {
     "properties": {
      "version": {
@@ -829,6 +990,53 @@
     ],
     "title": "JobStatus"
    },
+   "Knowledge": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "lang": {
+      "type": "string",
+      "title": "Lang",
+      "default": "en"
+     },
+     "structures": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/Structure"
+      },
+      "type": "object",
+      "title": "Structures"
+     },
+     "lobes": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/Lobe"
+      },
+      "type": "object",
+      "title": "Lobes"
+     },
+     "arteries": {
+      "$ref": "#/components/schemas/Arteries"
+     },
+     "sequences": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/Sequence"
+      },
+      "type": "object",
+      "title": "Sequences"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "version",
+     "structures",
+     "lobes",
+     "arteries",
+     "sequences"
+    ],
+    "title": "Knowledge"
+   },
    "Listing": {
     "properties": {
      "path": {
@@ -866,6 +1074,142 @@
      "entries"
     ],
     "title": "Listing"
+   },
+   "Lobe": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Name"
+     },
+     "tagline": {
+      "type": "string",
+      "maxLength": 90,
+      "minLength": 1,
+      "title": "Tagline"
+     },
+     "overview": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Overview"
+     },
+     "functions": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "minItems": 1,
+      "title": "Functions"
+     },
+     "clinical": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "minItems": 1,
+      "title": "Clinical"
+     },
+     "fact": {
+      "type": "string",
+      "title": "Fact"
+     },
+     "sources": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "minItems": 1,
+      "title": "Sources"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "name",
+     "tagline",
+     "overview",
+     "functions",
+     "clinical",
+     "fact",
+     "sources"
+    ],
+    "title": "Lobe"
+   },
+   "ModelIn": {
+    "properties": {
+     "pipeline": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]{1,40}$",
+      "title": "Pipeline",
+      "default": "auto"
+     },
+     "backend": {
+      "type": "string",
+      "enum": [
+       "auto",
+       "classical",
+       "totalseg"
+      ],
+      "title": "Backend",
+      "default": "auto"
+     }
+    },
+    "type": "object",
+    "title": "ModelIn"
+   },
+   "ModelOptions": {
+    "properties": {
+     "auto": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Auto"
+     },
+     "options": {
+      "items": {
+       "$ref": "#/components/schemas/PipelineOption"
+      },
+      "type": "array",
+      "title": "Options"
+     }
+    },
+    "type": "object",
+    "required": [
+     "auto",
+     "options"
+    ],
+    "title": "ModelOptions"
+   },
+   "PipelineOption": {
+    "properties": {
+     "pipeline": {
+      "type": "string",
+      "title": "Pipeline"
+     },
+     "score": {
+      "type": "number",
+      "title": "Score"
+     },
+     "backends": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Backends"
+     }
+    },
+    "type": "object",
+    "required": [
+     "pipeline",
+     "score",
+     "backends"
+    ],
+    "title": "PipelineOption"
    },
    "ProgressEvent": {
     "properties": {
@@ -940,6 +1284,31 @@
      "kind"
     ],
     "title": "Root"
+   },
+   "Sequence": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Name"
+     },
+     "what": {
+      "type": "string",
+      "title": "What"
+     },
+     "why": {
+      "type": "string",
+      "title": "Why"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "name",
+     "what",
+     "why"
+    ],
+    "title": "Sequence"
    },
    "SeriesInfo": {
     "properties": {
@@ -1060,6 +1429,132 @@
     ],
     "title": "SessionIn"
    },
+   "Structure": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Name"
+     },
+     "aka": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Aka"
+     },
+     "lobe": {
+      "type": "string",
+      "title": "Lobe",
+      "description": "Lobe/division id; equals knowledge.structures.lobe_of(id)"
+     },
+     "category": {
+      "type": "string",
+      "enum": [
+       "cortex",
+       "deep_grey",
+       "ventricle",
+       "white_matter",
+       "cerebellum",
+       "brainstem",
+       "vessel",
+       "organ",
+       "bone",
+       "cartilage",
+       "muscle",
+       "airway",
+       "nerve",
+       "tooth",
+       "spine",
+       "body"
+      ],
+      "title": "Category"
+     },
+     "tagline": {
+      "type": "string",
+      "maxLength": 90,
+      "minLength": 1,
+      "title": "Tagline"
+     },
+     "overview": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Overview"
+     },
+     "functions": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "maxItems": 6,
+      "minItems": 4,
+      "title": "Functions"
+     },
+     "connections": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "maxItems": 4,
+      "minItems": 2,
+      "title": "Connections"
+     },
+     "clinical": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "maxItems": 4,
+      "minItems": 2,
+      "title": "Clinical"
+     },
+     "lateralization": {
+      "type": "string",
+      "title": "Lateralization"
+     },
+     "fact": {
+      "type": "string",
+      "title": "Fact"
+     },
+     "brodmann": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Brodmann",
+      "description": "Approximate Brodmann areas; empty if not applicable"
+     },
+     "blood_supply": {
+      "type": "string",
+      "title": "Blood Supply"
+     },
+     "sources": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "minItems": 1,
+      "title": "Sources"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "name",
+     "lobe",
+     "category",
+     "tagline",
+     "overview",
+     "functions",
+     "connections",
+     "clinical",
+     "lateralization",
+     "fact",
+     "blood_supply",
+     "sources"
+    ],
+    "title": "Structure"
+   },
    "StudyInfo": {
     "properties": {
      "id": {
@@ -1156,6 +1651,31 @@
      "type"
     ],
     "title": "ValidationError"
+   },
+   "Vessel": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Name"
+     },
+     "supplies": {
+      "type": "string",
+      "title": "Supplies"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "name",
+     "supplies",
+     "note"
+    ],
+    "title": "Vessel"
    }
   }
  }

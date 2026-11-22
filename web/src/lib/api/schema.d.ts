@@ -158,6 +158,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/knowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Knowledge */
+        get: operations["knowledge_api_knowledge_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/inspect": {
         parameters: {
             query?: never;
@@ -227,10 +244,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/studies/{study_id}/model/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Model Options */
+        get: operations["model_options_api_studies__study_id__model_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/studies/{study_id}/model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Model */
+        post: operations["start_model_api_studies__study_id__model_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Arteries */
+        Arteries: {
+            /** Overview */
+            overview: string;
+            /** Vessels */
+            vessels: {
+                [key: string]: components["schemas"]["Vessel"];
+            };
+        };
         /** Capabilities */
         Capabilities: {
             /** Version */
@@ -370,6 +430,29 @@ export interface components {
          * @enum {string}
          */
         JobStatus: "queued" | "running" | "done" | "failed" | "cancelled";
+        /** Knowledge */
+        Knowledge: {
+            /** Version */
+            version: number;
+            /**
+             * Lang
+             * @default en
+             */
+            lang: string;
+            /** Structures */
+            structures: {
+                [key: string]: components["schemas"]["Structure"];
+            };
+            /** Lobes */
+            lobes: {
+                [key: string]: components["schemas"]["Lobe"];
+            };
+            arteries: components["schemas"]["Arteries"];
+            /** Sequences */
+            sequences: {
+                [key: string]: components["schemas"]["Sequence"];
+            };
+        };
         /** Listing */
         Listing: {
             /** Path */
@@ -383,6 +466,53 @@ export interface components {
              * @default false
              */
             truncated: boolean;
+        };
+        /** Lobe */
+        Lobe: {
+            /** Name */
+            name: string;
+            /** Tagline */
+            tagline: string;
+            /** Overview */
+            overview: string;
+            /** Functions */
+            functions: string[];
+            /** Clinical */
+            clinical: string[];
+            /** Fact */
+            fact: string;
+            /** Sources */
+            sources: string[];
+        };
+        /** ModelIn */
+        ModelIn: {
+            /**
+             * Pipeline
+             * @default auto
+             */
+            pipeline: string;
+            /**
+             * Backend
+             * @default auto
+             * @enum {string}
+             */
+            backend: "auto" | "classical" | "totalseg";
+        };
+        /** ModelOptions */
+        ModelOptions: {
+            /** Auto */
+            auto: string | null;
+            /** Options */
+            options: components["schemas"]["PipelineOption"][];
+        };
+        /** PipelineOption */
+        PipelineOption: {
+            /** Pipeline */
+            pipeline: string;
+            /** Score */
+            score: number;
+            /** Backends */
+            backends: string[];
         };
         /** ProgressEvent */
         ProgressEvent: {
@@ -417,6 +547,15 @@ export interface components {
              * @enum {string}
              */
             kind: "drive" | "home" | "removable" | "folder";
+        };
+        /** Sequence */
+        Sequence: {
+            /** Name */
+            name: string;
+            /** What */
+            what: string;
+            /** Why */
+            why: string;
         };
         /** SeriesInfo */
         SeriesInfo: {
@@ -479,6 +618,46 @@ export interface components {
             /** Token */
             token: string;
         };
+        /** Structure */
+        Structure: {
+            /** Name */
+            name: string;
+            /** Aka */
+            aka?: string[];
+            /**
+             * Lobe
+             * @description Lobe/division id; equals knowledge.structures.lobe_of(id)
+             */
+            lobe: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "cortex" | "deep_grey" | "ventricle" | "white_matter" | "cerebellum" | "brainstem" | "vessel" | "organ" | "bone" | "cartilage" | "muscle" | "airway" | "nerve" | "tooth" | "spine" | "body";
+            /** Tagline */
+            tagline: string;
+            /** Overview */
+            overview: string;
+            /** Functions */
+            functions: string[];
+            /** Connections */
+            connections: string[];
+            /** Clinical */
+            clinical: string[];
+            /** Lateralization */
+            lateralization: string;
+            /** Fact */
+            fact: string;
+            /**
+             * Brodmann
+             * @description Approximate Brodmann areas; empty if not applicable
+             */
+            brodmann?: number[];
+            /** Blood Supply */
+            blood_supply: string;
+            /** Sources */
+            sources: string[];
+        };
         /** StudyInfo */
         StudyInfo: {
             /** Id */
@@ -528,6 +707,15 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** Vessel */
+        Vessel: {
+            /** Name */
+            name: string;
+            /** Supplies */
+            supplies: string;
+            /** Note */
+            note: string;
         };
     };
     responses: never;
@@ -821,6 +1009,37 @@ export interface operations {
             };
         };
     };
+    knowledge_api_knowledge_get: {
+        parameters: {
+            query?: {
+                lang?: "en" | "hi";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Knowledge"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     inspect_api_inspect_post: {
         parameters: {
             query?: never;
@@ -958,6 +1177,72 @@ export interface operations {
                     "application/json": {
                         [key: string]: boolean;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    model_options_api_studies__study_id__model_options_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                study_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelOptions"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_model_api_studies__study_id__model_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                study_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ModelIn"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobInfo"];
                 };
             };
             /** @description Validation Error */
