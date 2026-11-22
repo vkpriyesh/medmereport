@@ -1,0 +1,42 @@
+medmereport
+Copyright 2026 vkpriyesh
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+medmereport is an educational viewer. It is not a medical device and does not
+provide a diagnosis.
+
+-------------------------------------------------------------------------------
+Third-party data and models (downloaded separately with `medmereport models pull`,
+not stored in this repository)
+-------------------------------------------------------------------------------
+
+SynthSeg 2.0 (whole-brain, parcellation and robust models)
+  B. Billot et al. "SynthSeg: Segmentation of brain MRI scans of any
+  contrast and resolution without retraining." Medical Image Analysis, 2023.
+  Robust/parcellation models: B. Billot et al., PNAS, 2023.
+  https://github.com/BBillot/SynthSeg - Apache License 2.0.
+  MODIFIED: the original Keras/TensorFlow (.h5) weights were converted to ONNX
+  (opset 17) by scripts/convert_synthseg.py for CPU inference without TensorFlow.
+  The numerical behaviour was checked against the original (argmax agreement 1.0
+  on the validation input). The converted files are published as release assets
+  under the tag `models-synthseg-2.0`.
+
+TotalSegmentator (open task "total", fast 3 mm model)
+  J. Wasserthal et al. "TotalSegmentator: Robust Segmentation of 104 Anatomic
+  Structures in CT Images." Radiology: Artificial Intelligence, 2023.
+  https://github.com/wasserth/TotalSegmentator - Apache License 2.0 (open tasks
+  only; licensed tasks are not used).
+
+MNI ICBM152 2009c nonlinear asymmetric template
+  Copyright (C) 1993-2004 Louis Collins, McConnell Brain Imaging Centre, Montreal
+  Neurological Institute, McGill University. Permission to use, copy, modify, and
+  distribute this software and its documentation for any purpose and without fee
+  is hereby granted, provided that the above copyright notice appear in all
+  copies. Retrieved via TemplateFlow.
+
+Harvard-Oxford cortical and subcortical atlases
+  FMRIB, Oxford / Harvard Center for Morphometric Analysis. CC BY-SA 4.0.
+
+Anatomy text cites OpenStax Anatomy and Physiology 2e (CC BY 4.0) and standard
+textbooks; the text itself is original.

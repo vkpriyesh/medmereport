@@ -1,0 +1,69 @@
+name: release
+# Push a tag vX.Y.Z (equal to the engine version) to publish the wheel + sdist that the
+# installer scripts download. Nothing is published unless every check below passes.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  install-check:
+    # the real install scripts on Windows / macOS / Linux with a wheel built from this tag
+    uses: ./.github/workflows/install.yml
+
+  build:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: engine } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { python-version: "3.12" }
+      - run: uv sync --locked
+      - name: Tag equals package version; wheel contains UI, knowledge and licences
+        run: uv run pytest -q tests/packaging   # GITHUB_REF=refs/tags/vX.Y.Z enables the tag check
+      - name: Build wheel and sdist
+        run: uv build --out-dir dist
+      - name: Smoke test the wheel in a fresh venv
+        run: |
+          uv venv --python 3.12 "$RUNNER_TEMP/smoke"
+          uv pip install --python "$RUNNER_TEMP/smoke/bin/python" dist/*.whl
+          "$RUNNER_TEMP/smoke/bin/medmereport" --version
+          test "$("$RUNNER_TEMP/smoke/bin/medmereport" --version)" = "medmereport ${GITHUB_REF_NAME#v}"
+          "$RUNNER_TEMP/smoke/bin/medmereport" doctor
+      - name: Checksums
+        run: cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with: { name: dist, path: engine/dist/, if-no-files-found: error }
+
+  publish:
+    needs: [install-check, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: dist, path: dist }
+      - name: Release notes from CHANGELOG.md
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          awk -v h="## [$v]" 'index($0, h) == 1 {on=1; next} on && /^## / {exit} on {print}' CHANGELOG.md > notes.md
+          test -s notes.md || { echo "CHANGELOG.md has no '## $v' section"; exit 1; }
+          cat >> notes.md <<EOF
+
+          ### Install
+          Windows (PowerShell): \`powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_REF_NAME}/scripts/install.ps1 | iex"\`
+          macOS / Linux: \`curl -LsSf https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_REF_NAME}/scripts/install.sh | sh\`
+          EOF
+          cat notes.md
+      - name: Create or update the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "medmereport ${GITHUB_REF_NAME#v}" --notes-file notes.md
+          fi

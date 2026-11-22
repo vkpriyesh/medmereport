@@ -4,7 +4,7 @@
 
 > ⚠️ **medmereport is for education and curiosity, not diagnosis.** It does not detect disease, and its measurements are automated estimates. Your radiologist's report is the authority on your scans.
 
-> 🚧 **Status: early preview (0.1, not yet a stable release).** Working today: importing discs (DICOMDIR, encrypted DcmBurner `burn.enc`, RadiAnt `dcmdata.zip`, ZIP/7z/folders, images/PDF), the 2D scan viewer, and 3D models from brain MRI, body CT, spine MRI and angiography. **Not yet:** one-click installers, X-ray overlays and relief view, optional AI explanations. Progress: [TASKS.md](TASKS.md).
+> 🚧 **Status: early preview (0.1, not yet a stable release).** Working today: importing discs (DICOMDIR, encrypted DcmBurner `burn.enc`, RadiAnt `dcmdata.zip`, ZIP/7z/folders, images/PDF), the 2D scan viewer, and 3D models from brain MRI, body CT, spine MRI and angiography. **Not yet:** X-ray overlays and relief view, optional AI explanations. Progress: [TASKS.md](TASKS.md).
 
 ---
 
@@ -27,39 +27,56 @@
 
 ---
 
-## Install (preview, about 10 minutes)
-One-click installers are coming (see TASKS.md, T7.1). For now, use a terminal. Nothing needs admin rights, and your system Python is not touched.
+## Install (about 5 minutes)
+Paste **one line**. You do not need admin rights, git or Python: the installer brings everything it needs into your user folder and leaves your system Python alone. It downloads only uv (Astral's small Python installer), a private Python 3.12 and medmereport, and sends nothing about you.
 
-**1. Install uv.** It brings its own Python.
-- Windows (PowerShell): `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
-- macOS / Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`
-
-Close and reopen the terminal afterwards.
-
-**2. Install medmereport:**
-```bash
-uv tool install --python 3.12 "medmereport[ai] @ git+https://github.com/vkpriyesh/medmereport@main#subdirectory=engine"
+**Windows:** open **PowerShell** (Start menu, type `PowerShell`) and paste:
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/vkpriyesh/medmereport/v0.1.0/scripts/install.ps1 | iex"
 ```
 
-**3. Download the brain models, once (about 360 MB).** This is the only time medmereport uses the internet.
+**macOS / Linux:** open **Terminal** and paste:
 ```bash
-medmereport models pull atlas-ho
-medmereport models pull synthseg
+curl -LsSf https://raw.githubusercontent.com/vkpriyesh/medmereport/v0.1.0/scripts/install.sh | sh
 ```
-CT, spine and angiography models need no download.
 
-**4. Start it:**
+Then start medmereport from the **medmereport** shortcut: Start menu or desktop on Windows, `~/Applications/medmereport.command` on macOS, your applications menu on Linux. A small terminal window opens (keep it open while you use the app) and your browser shows the app. You can also type `medmereport serve` in a new terminal.
+
+**Brain MRI needs a one-time model download (about 360 MB).** CT, spine and angiography need nothing extra. To download the brain models, open a new terminal and run `medmereport models pull atlas-ho` and then `medmereport models pull synthseg`, or install with them in one go:
+- Windows: `$env:MEDMEREPORT_WITH_MODELS=1; irm https://raw.githubusercontent.com/vkpriyesh/medmereport/v0.1.0/scripts/install.ps1 | iex`
+- macOS / Linux: `curl -LsSf https://raw.githubusercontent.com/vkpriyesh/medmereport/v0.1.0/scripts/install.sh | sh -s -- --with-models`
+
+**Update:** run the install line of the newest release again (see the [releases page](https://github.com/vkpriyesh/medmereport/releases)). It upgrades in place and keeps your studies. `uv tool upgrade medmereport` does not move to a new release, because each install is pinned to one release file.
+
+**Uninstall:** this removes the shortcuts and the program. You are asked whether to also delete your saved studies and downloaded models.
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/vkpriyesh/medmereport/v0.1.0/scripts/uninstall.ps1 | iex"
+```
 ```bash
-medmereport serve
+curl -LsSf https://raw.githubusercontent.com/vkpriyesh/medmereport/v0.1.0/scripts/uninstall.sh | sh
 ```
-Your browser opens a private page on this computer. Keep the terminal open while you use it.
+To delete your data too without being asked: on Windows run `$env:MEDMEREPORT_PURGE=1; irm https://raw.githubusercontent.com/vkpriyesh/medmereport/v0.1.0/scripts/uninstall.ps1 | iex` (or `.\uninstall.ps1 -Purge` on a downloaded copy); on macOS / Linux end the line with `| sh -s -- --purge`.
 
-To update, run `uv tool upgrade medmereport`. To remove it, run `uv tool uninstall medmereport` and then `medmereport purge` beforehand if you want your stored studies erased too.
+<details>
+<summary><b>Manual install</b> (if you prefer to see each step, or the script cannot run)</summary>
 
-**Requirements:** Windows 10/11, macOS 12+, or Linux; 8 GB RAM (16 GB recommended); 2 GB free disk; Chrome, Edge, Firefox or Safari. No GPU needed.
+1. Install uv: Windows `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`, macOS / Linux `curl -LsSf https://astral.sh/uv/install.sh | sh`. Close and reopen the terminal.
+2. Install medmereport from the release wheel (no git needed):
+   ```bash
+   uv tool install --python 3.12 "medmereport[ai] @ https://github.com/vkpriyesh/medmereport/releases/download/v0.1.0/medmereport-0.1.0-py3-none-any.whl"
+   ```
+3. Optional brain models: `medmereport models pull atlas-ho` and `medmereport models pull synthseg`.
+4. Start it: `medmereport serve`.
+
+Remove it with `medmereport purge` (only if you want your studies erased) and then `uv tool uninstall medmereport`.
+</details>
+
+**Windows warns about the script, or antivirus blocks it?** `-ExecutionPolicy ByPass` only applies to that one command; it does not change your system settings. Some antivirus programs flag any "download and run" command. You can read exactly what will run first: open the `install.ps1` link above in your browser. If your antivirus quarantines `uv.exe` or `medmereport.exe`, allow them (both live in `%USERPROFILE%\.local\bin`) or use the manual install above. On macOS, if Finder says `medmereport.command` cannot be opened, right-click it and choose **Open** once.
+
+**Requirements:** Windows 10/11 (64-bit), macOS 12+, or Linux; 8 GB RAM (16 GB recommended); 2 GB free disk; Chrome, Edge, Firefox or Safari. No GPU needed.
 
 ## First run
-1. Run `medmereport serve`. Your browser opens the app.
+1. Open the **medmereport** shortcut (or run `medmereport serve`). Your browser opens the app.
 2. Click **Open scans** and choose your disc folder or ZIP (or paste its path).
 3. If the disc is encrypted, type the password from the hospital slip. It is never saved. medmereport never runs the `.exe` on the disc.
 4. On the study page, open the **scan viewer** or click **Build my 3D model**. A brain model takes 1–5 minutes; CT and spine take seconds to a minute.
@@ -85,8 +102,9 @@ If you have **Ollama** installed, medmereport can explain regions in plain langu
 | "Wrong password" | Check the hospital slip; passwords are case-sensitive. |
 | "No scans found" | Make sure you selected the whole disc folder; run `medmereport doctor`. |
 | Slow processing | Close other apps; 3D building can take 3–8 minutes on older laptops. |
-| "The selected method is not installed on this computer" (brain MRI) | Run step 3 of the install (`medmereport models pull atlas-ho`). |
-| `medmereport` not found after install | Close and reopen the terminal, or run `uv tool update-shell`. |
+| "The selected method is not installed on this computer" (brain MRI) | Download the brain models (see Install: `medmereport models pull atlas-ho` and `medmereport models pull synthseg`). |
+| `medmereport` not found after install | Close and reopen the terminal (the shortcut works either way), or run `uv tool update-shell`. |
+| The shortcut window closes or shows an error | Run `medmereport doctor` in a terminal and include its output in a GitHub issue. Re-running the install line repairs most problems. |
 | Page won't open | Run `medmereport serve` in a terminal and open the link it prints. |
 | Unknown disc format | Run `medmereport diagnose <folder>`. It creates an anonymous file-structure report (no images, no names) you can attach to a GitHub issue. |
 

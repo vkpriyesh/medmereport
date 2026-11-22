@@ -6,6 +6,8 @@ readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11,<3.14"
 authors = [{ name = "vkpriyesh" }]
+# LICENSE and NOTICE are copies of the repo-root files (tests/packaging checks they stay identical)
+license-files = ["LICENSE", "NOTICE"]
 dependencies = [
   "fastapi>=0.115",
   "starlette>=1.0.1",
@@ -47,11 +49,20 @@ e2e = ["playwright>=1.48"]
 requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
+[project.urls]
+Homepage = "https://github.com/vkpriyesh/medmereport"
+Changelog = "https://github.com/vkpriyesh/medmereport/blob/main/CHANGELOG.md"
+
 [tool.hatch.build.targets.wheel]
 packages = ["medmereport"]
 
-# The built web UI is committed to medmereport/server/static (via `npm run build` in web/)
-# so that `uv tool install git+https://github.com/vkpriyesh/medmereport` works without Node.
+# Only what is needed to rebuild the wheel (no caches such as .hypothesis/, no tests).
+[tool.hatch.build.targets.sdist]
+include = ["medmereport", "README.md", "LICENSE", "NOTICE", "pyproject.toml", "uv.lock"]
+exclude = ["__pycache__", "*.pyc"]
+
+# The built web UI is committed to medmereport/server/static (via `npm run build` in web/), so the
+# wheel built by `uv build` (and attached to each GitHub release) contains it: users need no Node or git.
 
 [tool.ruff]
 line-length = 120

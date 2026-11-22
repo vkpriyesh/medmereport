@@ -1,0 +1,134 @@
+name: install
+# Clean-install check (T7.8): build the wheel from this checkout, install it with the real
+# end-user scripts on fresh Windows / macOS / Linux runners (no git, no system Python used),
+# start the app headless, then uninstall. Also called by release.yml before publishing.
+on:
+  push:
+    branches: [main]
+    paths: ["scripts/**", "engine/**", ".github/workflows/install.yml"]
+  pull_request:
+    paths: ["scripts/**", "engine/**", ".github/workflows/install.yml"]
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck (POSIX sh)
+        run: shellcheck -s sh scripts/install.sh scripts/uninstall.sh
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
+          $r = Invoke-ScriptAnalyzer -Path scripts -Settings scripts/PSScriptAnalyzerSettings.psd1
+          $r | Format-Table RuleName, ScriptName, Line, Message -AutoSize -Wrap
+          if ($r) { throw "PSScriptAnalyzer found $($r.Count) problem(s)" }
+      - name: Installer scripts are ASCII (PowerShell 5.1 reads BOM-less files as ANSI)
+        run: "! grep -nP '[^\\x00-\\x7F]' scripts/*.ps1 scripts/*.sh"
+
+  clean-install:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      # exercise the "uv is missing" path: the script installs its pinned uv even though setup-uv put one on PATH
+      MEDMEREPORT_INSTALL_UV: "1"
+      MEDMEREPORT_PURGE: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Build the wheel
+        shell: bash
+        run: |
+          uv build engine --out-dir "$RUNNER_TEMP/dist"
+          ls -l "$RUNNER_TEMP/dist"
+          echo "MEDMEREPORT_WHEEL=$(ls "$RUNNER_TEMP"/dist/*.whl)" >> "$GITHUB_ENV"
+          echo "EXPECTED_VERSION=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' engine/medmereport/__init__.py)" >> "$GITHUB_ENV"
+
+      - name: Install (Windows PowerShell 5.1, as a file)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $PSVersionTable.PSVersion
+          .\scripts\install.ps1
+          if ($LASTEXITCODE -ne 0) { throw "install.ps1 failed" }
+      - name: Re-run = upgrade (Windows, the irm | iex way)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          Get-Content -Raw scripts\install.ps1 | Invoke-Expression
+          $lnk = Join-Path ([Environment]::GetFolderPath('Programs')) 'medmereport.lnk'
+          if (-not (Test-Path $lnk)) { throw "Start-menu shortcut missing: $lnk" }
+          $desk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'medmereport.lnk'
+          if (-not (Test-Path $desk)) { throw "Desktop shortcut missing: $desk" }
+          $target = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
+          "$($target.TargetPath) $($target.Arguments)"
+          $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+          $bin = (uv tool dir --bin)
+          if (($userPath -split ';') -notcontains $bin) { throw "uv tool update-shell did not add $bin to the user PATH" }
+          Add-Content -Path $env:GITHUB_PATH -Value $bin -Encoding ascii
+
+      - name: Install (macOS / Linux)
+        if: runner.os != 'Windows'
+        run: sh scripts/install.sh
+      - name: Re-run = upgrade (macOS / Linux, the curl | sh way)
+        if: runner.os != 'Windows'
+        run: |
+          sh -s -- < scripts/install.sh
+          if [ "$RUNNER_OS" = macOS ]; then test -x "$HOME/Applications/medmereport.command"; cat "$HOME/Applications/medmereport.command"
+          else test -f "$HOME/.local/share/applications/medmereport.desktop"; cat "$HOME/.local/share/applications/medmereport.desktop"
+            if command -v desktop-file-validate >/dev/null; then desktop-file-validate "$HOME/.local/share/applications/medmereport.desktop"; fi
+          fi
+          uv tool dir --bin >> "$GITHUB_PATH"
+
+      - name: Version and doctor
+        shell: bash
+        run: |
+          v="$(medmereport --version)"
+          echo "$v"
+          test "$v" = "medmereport $EXPECTED_VERSION"
+          medmereport doctor
+
+      - name: Headless start serves the app shell
+        shell: bash
+        run: |
+          port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])' 2>/dev/null || echo 48765)
+          medmereport serve --no-browser --port "$port" > "$RUNNER_TEMP/serve.log" 2>&1 &
+          pid=$!
+          ok=""
+          for _ in $(seq 1 90); do
+            if curl -fsS "http://127.0.0.1:$port/" -o "$RUNNER_TEMP/index.html"; then ok=1; break; fi
+            sleep 1
+          done
+          kill "$pid" || true
+          cat "$RUNNER_TEMP/serve.log"
+          test -n "$ok"
+          grep -q '<div id="app"' "$RUNNER_TEMP/index.html"
+          grep -q '<title>medmereport' "$RUNNER_TEMP/index.html"
+
+      - name: Uninstall (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          .\scripts\uninstall.ps1 -Purge
+          if ($LASTEXITCODE -ne 0) { throw "uninstall.ps1 failed" }
+          if (Test-Path (Join-Path ([Environment]::GetFolderPath('Programs')) 'medmereport.lnk')) { throw 'shortcut left behind' }
+          if (Test-Path (Join-Path (uv tool dir --bin) 'medmereport.exe')) { throw 'medmereport.exe left behind' }
+          .\scripts\uninstall.ps1
+          if ($LASTEXITCODE -ne 0) { throw "a second uninstall should be a no-op" }
+      - name: Uninstall (macOS / Linux)
+        if: runner.os != 'Windows'
+        run: |
+          sh scripts/uninstall.sh --purge
+          test ! -e "$(uv tool dir --bin)/medmereport"
+          test ! -e "$HOME/Applications/medmereport.command"
+          test ! -e "$HOME/.local/share/applications/medmereport.desktop"
+          sh scripts/uninstall.sh
