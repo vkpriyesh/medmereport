@@ -19,6 +19,10 @@ def _builtin() -> None:
         from medmereport.pipelines.brain_mr.pipeline import BrainMRPipeline
 
         register("brain_mr", BrainMRPipeline)
+    if "vessels" not in _FACTORIES:
+        from medmereport.pipelines.vessels.pipeline import VesselsPipeline
+
+        register("vessels", VesselsPipeline)
 
 
 def names() -> list[str]:
