@@ -20,7 +20,7 @@
 <div class="ibody">
   {#if A?.overview}<p>{A.overview}</p>{/if}
   {#if A?.vessels && Object.keys(A.vessels).length}
-    <h4>{t('card.vessel.main')}</h4>
+    <h3 class="sh">{t('card.vessel.main')}</h3>
     <dl class="kv">
       {#each Object.values(A.vessels) as v}<dt>{v.name}</dt><dd>{v.supplies}{#if v.note}<br /><span class="faint">{v.note}</span>{/if}</dd>{/each}
     </dl>

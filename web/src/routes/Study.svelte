@@ -92,12 +92,6 @@
 {/if}
 
 <style>
-  .center { min-height: 50vh; display: grid; place-items: center; }
-  .spinner { width: 38px; height: 38px; border-radius: 50%; border: 2px solid rgba(94,234,212,.15); border-top-color: var(--accent); animation: spin 1s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .msg { max-width: 560px; margin: 10vh auto; padding: 26px; }
-  .msg h1 { margin: 0 0 8px; font-size: 22px; }
-  .mono { font-family: var(--mono); font-size: 12px; }
   .hdr { padding: 28px 0 8px; }
   .crumbs { font-size: 13px; margin-bottom: 14px; display: flex; gap: 6px; flex-wrap: wrap; }
   .row { display: flex; gap: 20px; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; }

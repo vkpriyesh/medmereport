@@ -1,14 +1,18 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { api, watchJob, type Capabilities } from '../lib/api/client'
+  import { MOCK } from '../lib/api/endpoints'
   import { t } from '../lib/i18n/index.svelte'
   import { link } from '../lib/router.svelte'
 
   let caps = $state<Capabilities | null>(null)
+  /** loading → ok | down (engine unreachable) | mock (dev demo mode has no engine) */
+  let capsState = $state<'loading' | 'ok' | 'down' | 'mock'>(MOCK ? 'mock' : 'loading')
   let test = $state<{ state: 'idle' | 'running' | 'ok' | 'fail'; pct: number; msg: string }>({ state: 'idle', pct: 0, msg: '' })
 
   onMount(async () => {
-    try { caps = await api.capabilities() } catch { caps = null }
+    if (MOCK) return
+    try { caps = await api.capabilities(); capsState = 'ok' } catch { caps = null; capsState = 'down' }
   })
 
   async function selfTest() {
@@ -48,27 +52,34 @@
   {#each promises as p, i}
     <article class="panel promise fade-in" style="animation-delay:{80 * i}ms">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={p.icon} /></svg>
-      <h3>{t(`home.${p.k}.t`)}</h3>
+      <h2>{t(`home.${p.k}.t`)}</h2>
       <p class="muted">{t(`home.${p.k}.d`)}</p>
     </article>
   {/each}
 </section>
 
-<section class="panel status">
-  <div class="row"><span class="faint">{t('status.engine')}</span><b>{caps ? `${t('status.ready')} · v${caps.version}` : '…'}</b></div>
-  <div class="row"><span class="faint">{t('status.ai')}</span><b>{caps ? (caps.onnxruntime ? t('status.installed') : t('status.optional')) : '…'}</b></div>
-  <div class="row test">
+<section class="panel status" aria-labelledby="st-t" aria-busy={capsState === 'loading'}>
+  <h2 id="st-t" class="sr-only">{t('status.title')}</h2>
+  {#if capsState === 'mock'}
+    <div class="row"><span class="faint">{t('status.engine')}</span><b>{t('status.mock')}</b></div>
+  {:else if capsState === 'down'}
+    <div class="row"><span class="faint">{t('status.engine')}</span><b class="bad">{t('status.down')}</b></div>
+  {:else}
+    <div class="row"><span class="faint">{t('status.engine')}</span><b>{caps ? `${t('status.ready')} · v${caps.version}` : t('common.loading')}</b></div>
+    <div class="row"><span class="faint">{t('status.ai')}</span><b>{caps ? (caps.onnxruntime ? t('status.installed') : t('status.optional')) : t('common.loading')}</b></div>
+  {/if}
+  {#if capsState !== 'mock'}<div class="row test">
     <button class="btn" onclick={selfTest} disabled={test.state === 'running'}>
       {test.state === 'running' ? t('selftest.running') : t('selftest.run')}
     </button>
     {#if test.state === 'running'}
-      <div class="bar" role="progressbar" aria-valuenow={test.pct} aria-valuemin="0" aria-valuemax="100"><i style="width:{test.pct}%"></i></div>
+      <div class="bar" role="progressbar" aria-label={t('selftest.running')} aria-valuenow={test.pct} aria-valuemin="0" aria-valuemax="100"><i style="width:{test.pct}%"></i></div>
     {:else if test.state === 'ok'}
-      <span class="ok">✓ {t('selftest.ok')}</span>
+      <span class="ok" role="status">✓ {t('selftest.ok')}</span>
     {:else if test.state === 'fail'}
-      <span class="bad">{t('selftest.fail', { msg: test.msg })}</span>
+      <span class="bad" role="alert">{t('selftest.fail', { msg: test.msg })}</span>
     {/if}
-  </div>
+  </div>{/if}
 </section>
 
 <style>
@@ -87,17 +98,19 @@
   .promises { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 10px 0 18px; }
   .promise { padding: 22px; }
   .promise svg { width: 26px; height: 26px; color: var(--accent); }
-  .promise h3 { margin: 12px 0 6px; font-size: 16px; }
+  .promise h2 { margin: 12px 0 6px; font-size: 16px; }
   .promise p { margin: 0; font-size: 14px; }
   .status { padding: 16px 20px; display: grid; gap: 10px; margin-bottom: 60px; }
+  @media (max-width: 520px) { .orb { max-width: 140px; } }
   .row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
   .row > span:first-child { width: 90px; }
   .bar { flex: 1; min-width: 160px; height: 6px; border-radius: 6px; background: rgba(255,255,255,.08); overflow: hidden; }
   .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .3s; }
   .ok { color: var(--ok); } .bad { color: var(--danger); }
   @media (max-width: 860px) {
-    .hero { grid-template-columns: 1fr; padding-top: 40px; }
+    .hero { grid-template-columns: 1fr; padding-top: 32px; gap: 20px; }
     .orb { max-width: 220px; order: -1; }
+    .promise { padding: 18px; }
     .promises { grid-template-columns: 1fr; }
   }
 </style>

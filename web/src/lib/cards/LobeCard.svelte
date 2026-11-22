@@ -44,7 +44,7 @@
 </div>
 <div class="ibody">
   {#if mode === 'mine' && (sums.L || sums.R || sums.M)}
-    <h4>{t('card.yourMeasurements')}</h4>
+    <h3 class="sh">{t('card.yourMeasurements')}</h3>
     <div class="metrics">
       {#each (['L', 'R', 'M'] as const) as h}
         {#if sums[h]}
@@ -55,10 +55,10 @@
     <p class="p faint" style="font-size:11.5px;margin-top:6px">{t('card.lobeSumNote')}</p>
   {/if}
   {#if l?.overview}<p>{l.overview}</p>{/if}
-  {#if l?.functions?.length}<h4>{t('card.functions')}</h4><ul class="dots">{#each l.functions as x}<li>{x}</li>{/each}</ul>{/if}
-  {#if l?.clinical?.length}<h4>{t('card.clinical')}</h4><ul class="dots clin">{#each l.clinical as x}<li>{x}</li>{/each}</ul>{/if}
+  {#if l?.functions?.length}<h3 class="sh">{t('card.functions')}</h3><ul class="dots">{#each l.functions as x}<li>{x}</li>{/each}</ul>{/if}
+  {#if l?.clinical?.length}<h3 class="sh">{t('card.clinical')}</h3><ul class="dots clin">{#each l.clinical as x}<li>{x}</li>{/each}</ul>{/if}
   {#if l?.fact}<div class="fact"><b>{t('card.fact')}</b>{l.fact}</div>{/if}
-  <h4>{ctx.ft('card.inDivision')}</h4>
+  <h3 class="sh">{ctx.ft('card.inDivision')}</h3>
   <div class="chips">
     {#each members as m (m)}
       {@const c = ctx.store.colors[m]}

@@ -5,8 +5,8 @@
 .cardx .ihead .tag { margin: 8px 0 0; color: var(--text-2); font-size: 13.5px; }
 .cardx .ihead .x { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; padding: 0; }
 .cardx .ibody { padding: 0 20px 20px; }
-.cardx h4 { margin: 20px 0 8px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3); font-weight: 600; display: flex; align-items: center; gap: 8px; }
-.cardx h4::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.cardx h3.sh { margin: 20px 0 8px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3); font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.cardx h3.sh::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 .cardx .ibody > p, .cardx .ibody .p { margin: 0 0 8px; color: var(--text-2); font-size: 13.5px; line-height: 1.6; }
 .cardx ul.dots { margin: 0; padding: 0; list-style: none; }
 .cardx ul.dots li { position: relative; padding: 4px 0 4px 18px; color: var(--text-2); font-size: 13px; line-height: 1.5; }

@@ -83,7 +83,7 @@
       <div class="sh">
         <a class="back" href="/study/{sid}" use:link aria-label={t('view.back')} title={t('view.back')}><Icon name="back" size={16} /></a>
         <div class="st">
-          <b>{preset === 'sagittal' ? t('view.sagittal.title') : t('view.title')}</b>
+          <h1 class="pt">{preset === 'sagittal' ? t('view.sagittal.title') : t('view.title')}</h1>
           <small class="faint">{study.description}</small>
         </div>
         <span class="chip">{metas.length}</span>
@@ -120,8 +120,9 @@
       {/key}
     </section>
 
-    <aside class="info panel" aria-label={t('view.about')}>
-      <div class="ph">{t('view.about')}</div>
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <aside class="info panel" aria-label={t('view.about')} tabindex="0">
+      <h2 class="ph">{t('view.about')}</h2>
       {#if am}
         <div class="ib">
           {#if hl}
@@ -182,12 +183,6 @@
 {/if}
 
 <style>
-  .center { min-height: 50vh; display: grid; place-items: center; }
-  .spinner { width: 38px; height: 38px; border-radius: 50%; border: 2px solid rgba(94,234,212,.15); border-top-color: var(--accent); animation: spin 1s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .msg { max-width: 560px; margin: 10vh auto; padding: 26px; display: grid; gap: 10px; justify-items: start; }
-  .msg h1 { margin: 0; font-size: 21px; }
-  .msg p { margin: 0; }
 
   .vpage { display: grid; grid-template-columns: 270px minmax(0, 1fr) 320px; grid-template-areas: 'side main info';
     gap: 14px; padding: 14px 0; height: calc(100vh - var(--topbar)); height: calc(100dvh - var(--topbar)); }
@@ -199,7 +194,7 @@
   .back { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 9px; color: var(--text-2); border: 1px solid var(--line); }
   .back:hover { color: var(--text); background: rgba(255,255,255,.05); }
   .st { display: grid; min-width: 0; flex: 1; }
-  .st b { font-size: 14px; }
+  .st .pt { margin: 0; font-size: 14px; font-weight: 650; line-height: 1.3; }
   .st small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
   .slist { flex: 1; overflow: auto; padding: 4px 8px 10px; }
   .sgroup { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); font-weight: 600; padding: 12px 8px 6px; }
@@ -213,7 +208,7 @@
   .si .s { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
   .slot { margin-left: auto; font: 500 10px var(--mono); color: var(--accent); white-space: nowrap; }
 
-  .ph { padding: 14px 18px 4px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); font-weight: 600; }
+  .ph { margin: 0; padding: 14px 18px 4px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); font-weight: 600; }
   .ib { padding: 6px 16px 18px; display: grid; gap: 0; }
   .ib > :global(figure) { margin: 6px 0 4px; }
   h3 { margin: 12px 0 4px; font-size: 18px; letter-spacing: -.01em; }
@@ -245,4 +240,6 @@
     .slist { max-height: 210px; }
     .ib { columns: 1; }
   }
+  /* single column but still above the phone breakpoint (where ViewerLayout sizes each pane): give the viewer real height */
+  @media (max-width: 820px) and (min-width: 721px) { .main { height: min(80dvh, 760px); } }
 </style>

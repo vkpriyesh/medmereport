@@ -191,7 +191,9 @@
   .opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); cursor: pointer; background: rgba(255,255,255,.02); }
   .opt:hover { border-color: var(--line-2); }
   .opt.on { border-color: rgba(94,234,212,.45); background: var(--accent-soft); }
-  .opt.off { opacity: .7; cursor: not-allowed; }
+  /* unavailable: dim the name only, so the reason (how to get it) stays readable at full contrast */
+  .opt.off { cursor: not-allowed; border-style: dashed; }
+  .opt.off .ot > b { color: var(--text-2); }
   .opt input { margin-top: 3px; accent-color: var(--accent); }
   .ot { display: grid; gap: 2px; min-width: 0; }
   .ot b { font-size: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

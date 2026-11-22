@@ -47,7 +47,7 @@
 
 <div class="ibody">
   {#if mode === 'mine'}
-    <h4>{t('card.yourMeasurements')}</h4>
+    <h3 class="sh">{t('card.yourMeasurements')}</h3>
     {#if r?.measurements?.length}
       <div class="metrics">
         {#each r.measurements as m (m.key)}
@@ -59,7 +59,7 @@
     {/if}
 
     {#if thumbs.length}
-      <h4>{t('card.onScan')}</h4>
+      <h3 class="sh">{t('card.onScan')}</h3>
       <div class="thumbs">
         {#each thumbs as th}
           {#if th.series}
@@ -74,7 +74,7 @@
       <p class="p faint" style="font-size:11.5px;margin-top:8px">{t('card.thumb.hint')}</p>
     {/if}
 
-    {#if st?.overview}<h4>{t('card.whatItIs')}</h4><p>{st.overview}</p>{/if}
+    {#if st?.overview}<h3 class="sh">{t('card.whatItIs')}</h3><p>{st.overview}</p>{/if}
     <div class="cta">
       <button type="button" class="btn" onclick={() => setMode('learn')}><Icon name="spark" size={15} />{t('card.learnMore')}</button>
       {#if hasOther && otherKey}<button type="button" class="btn" onclick={() => ctx.act.select({ type: 'region', id: otherKey }, true)}>{t(parts.hemi === 'L' ? 'card.compareR' : 'card.compareL')}<Icon name="arrow" size={15} /></button>{/if}
@@ -83,11 +83,11 @@
   {:else}
     {#if st}
       {#if st.overview}<p>{st.overview}</p>{/if}
-      {#if st.functions?.length}<h4>{t('card.functions')}</h4><ul class="dots">{#each st.functions as x}<li>{x}</li>{/each}</ul>{/if}
-      {#if st.connections?.length}<h4>{t('card.connections')}</h4><ul class="dots conn">{#each st.connections as x}<li>{x}</li>{/each}</ul>{/if}
-      {#if st.clinical?.length}<h4>{t('card.clinical')}</h4><ul class="dots clin">{#each st.clinical as x}<li>{x}</li>{/each}</ul>{/if}
-      {#if st.lateralization}<h4>{t('card.lateralization')}</h4><p>{st.lateralization}</p>{/if}
-      <h4>{t('card.details')}</h4>
+      {#if st.functions?.length}<h3 class="sh">{t('card.functions')}</h3><ul class="dots">{#each st.functions as x}<li>{x}</li>{/each}</ul>{/if}
+      {#if st.connections?.length}<h3 class="sh">{t('card.connections')}</h3><ul class="dots conn">{#each st.connections as x}<li>{x}</li>{/each}</ul>{/if}
+      {#if st.clinical?.length}<h3 class="sh">{t('card.clinical')}</h3><ul class="dots clin">{#each st.clinical as x}<li>{x}</li>{/each}</ul>{/if}
+      {#if st.lateralization}<h3 class="sh">{t('card.lateralization')}</h3><p>{st.lateralization}</p>{/if}
+      <h3 class="sh">{t('card.details')}</h3>
       <dl class="kv">
         {#if st.aka?.length}<dt>{t('card.aka')}</dt><dd>{st.aka.join(', ')}</dd>{/if}
         {#if brod}<dt>{t('card.brodmann')}</dt><dd>{brod}</dd>{/if}

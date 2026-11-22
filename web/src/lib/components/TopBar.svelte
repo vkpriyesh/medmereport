@@ -10,7 +10,7 @@
 </script>
 
 <header class="topbar">
-  <a href="/" use:link class="brand" aria-label="medmereport home">
+  <a href="/" use:link class="brand" aria-label={t('nav.brand')}>
     <span class="logo" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="#042520" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 3c-3.5 0-6 2.4-6 5.6 0 1.4.5 2.4 1.2 3.3-.8.8-1.2 1.8-1.2 3 0 2.8 2.2 5.1 5 5.1h2c2.8 0 5-2.3 5-5.1 0-1.2-.4-2.2-1.2-3 .7-.9 1.2-1.9 1.2-3.3C18 5.4 15.5 3 12 3z"/>
@@ -22,7 +22,8 @@
 
   <nav aria-label="Main">
     {#each nav as n}
-      <a href={n.href} use:link class:active={route.path === n.href || (n.href !== '/' && route.path.startsWith(n.href))}>{t(n.key)}</a>
+      {@const on = route.path === n.href || (n.href !== '/' && route.path.startsWith(n.href))}
+      <a href={n.href} use:link class:active={on} aria-current={on ? 'page' : undefined}>{t(n.key)}</a>
     {/each}
   </nav>
 

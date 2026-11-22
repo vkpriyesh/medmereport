@@ -23,24 +23,30 @@
     })
   })
 
-  type Route = { pattern: string; component: any; props?: Record<string, unknown>; wide?: boolean }
+  type Route = { pattern: string; component: any; props?: Record<string, unknown>; wide?: boolean; title?: string }
   const routes: Route[] = [
     { pattern: '/', component: Home },
-    { pattern: '/import', component: Import },
-    { pattern: '/study/:id', component: Study },
-    { pattern: '/study/:id/3d', component: Model3D, wide: true },
-    { pattern: '/study/:id/view', component: View, wide: true },
-    { pattern: '/study/:id/view/:seriesId', component: View, wide: true },
-    { pattern: '/study/:id/sagittal', component: View, props: { preset: 'sagittal' }, wide: true },
-    { pattern: '/learn', component: Placeholder, props: { title: 'nav.learn' } },
+    { pattern: '/import', component: Import, title: 'nav.import' },
+    { pattern: '/study/:id', component: Study, title: 'title.study' },
+    { pattern: '/study/:id/3d', component: Model3D, wide: true, title: 'title.3d' },
+    { pattern: '/study/:id/view', component: View, wide: true, title: 'title.view' },
+    { pattern: '/study/:id/view/:seriesId', component: View, wide: true, title: 'title.view' },
+    { pattern: '/study/:id/sagittal', component: View, props: { preset: 'sagittal' }, wide: true, title: 'title.sagittal' },
+    { pattern: '/learn', component: Placeholder, props: { title: 'nav.learn' }, title: 'nav.learn' },
   ]
-  const current = $derived(resolve(routes, route.path) ?? { pattern: '*', component: Home, params: {} as Record<string, string>, wide: false })
+  const current = $derived(resolve(routes, route.path) ?? { pattern: '*', component: Home, params: {} as Record<string, string>, wide: false, title: undefined })
+  // a distinct page title per screen (screen readers announce it; tabs and history become tellable apart)
+  $effect(() => { document.title = current.title ? `${t(current.title)} · medmereport` : `medmereport · ${t('app.tagline')}` })
+  let mainEl = $state<HTMLElement | null>(null)
+  function skip(e: MouseEvent) { e.preventDefault(); mainEl?.focus() }
 </script>
 
+<a class="skip" href="#main" onclick={skip}>{t('common.skip')}</a>
+
 <TopBar />
-<main class="container" class:wide={current.wide}>
+<main id="main" class="container" class:wide={current.wide} tabindex="-1" bind:this={mainEl}>
   {#if session === 'pending'}
-    <div class="center"><div class="spinner" aria-label="Loading"></div></div>
+    <div class="center" role="status"><div class="spinner" aria-hidden="true"></div><span class="sr-only">{t('common.loading')}</span></div>
   {:else if session === 'ok'}
     {@const C = current.component}
     <C {...current.props} params={current.params} />
@@ -56,9 +62,7 @@
   .container { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
   .container.wide { max-width: none; padding: 0 14px; }
   @media (max-width: 520px) { .container, .container.wide { padding: 0 16px; } }
-  .center { min-height: 60vh; display: grid; place-items: center; }
-  .spinner { width: 42px; height: 42px; border-radius: 50%; border: 2px solid rgba(94,234,212,.15); border-top-color: var(--accent); animation: spin 1s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  main:focus { outline: none; }
   .gate { max-width: 560px; margin: 12vh auto; padding: 28px 30px; }
   .gate h2 { margin: 0 0 8px; }
 </style>
