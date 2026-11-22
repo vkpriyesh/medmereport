@@ -58,12 +58,15 @@ jobs:
           macOS / Linux: \`curl -LsSf https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_REF_NAME}/scripts/install.sh | sh\`
           EOF
           cat notes.md
-      - name: Create or update the GitHub release
+      - name: Attach files to the maintainer's release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # The maintainer creates the release under their own account (see docs/RELEASING.md);
+          # this job only attaches the built files, so the release is never authored by a bot.
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" dist/* --clobber
           else
-            gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "medmereport ${GITHUB_REF_NAME#v}" --notes-file notes.md
+            echo "::error::No release '$GITHUB_REF_NAME' yet. Create it as the maintainer (gh release create $GITHUB_REF_NAME --notes-file ...), then re-run this job."
+            exit 1
           fi
