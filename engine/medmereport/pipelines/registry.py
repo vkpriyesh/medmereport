@@ -19,6 +19,14 @@ def _builtin() -> None:
         from medmereport.pipelines.brain_mr.pipeline import BrainMRPipeline
 
         register("brain_mr", BrainMRPipeline)
+    if "ct_body" not in _FACTORIES:
+        from medmereport.pipelines.ct_body.pipeline import CTBodyPipeline
+
+        register("ct_body", CTBodyPipeline)
+    if "spine_mr" not in _FACTORIES:
+        from medmereport.pipelines.spine_mr.pipeline import SpineMRPipeline
+
+        register("spine_mr", SpineMRPipeline)
     if "vessels" not in _FACTORIES:
         from medmereport.pipelines.vessels.pipeline import VesselsPipeline
 
