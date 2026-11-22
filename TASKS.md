@@ -47,7 +47,7 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 
 | T1.13 | Playwright e2e: synthetic encrypted disc → password → dashboard → viewer (scroll, W/L, measure) | Q | T1.10,T1.11 | `web/e2e/` | Runs in CI on built app | todo | |
 | T1.14 | Merge duplicate safe-zip extractors (`loose.extract_zip` vs `dcmburner.safe_extract_zip`) into `ingest/archive.py`; add `warnings` to OpenContext | I | T1.3,T1.5 | `engine/medmereport/ingest/` | One extractor, all ingest tests green | todo | |
-| T1.15 | Reconcile hand-written `web/src/lib/api/endpoints.ts` with generated OpenAPI types | W | T1.9 | `web/src/lib/api/` | No hand-written duplicates of engine models | todo | |
+| T1.15 | Reconcile hand-written `web/src/lib/api/endpoints.ts` with generated OpenAPI types | W | T1.9 | `web/src/lib/api/` | No hand-written duplicates of engine models | doing | agent-W |
 
 ## M2 — Brain MR 3D
 | ID | Task | Lane | Deps | Paths | Acceptance | Status | Owner |
@@ -66,7 +66,7 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 
 | T2.12 | Publish SynthSeg ONNX weights as GitHub release assets (`models-synthseg-2.0`) on vkpriyesh/medmereport so `models pull synthseg-*` works | D | T2.4 | release | Hashes match registry | blocked | needs owner approval to publish (outward-facing) |
 | T2.13 | Head/skin surface layer (`H__skin`) + TOF vessel pipeline hookup in brain model | G | T2.6,T3.3 | geometry/ | Layers toggle in UI | todo | |
-| T2.14 | Hover raycast acceleration (BVH) for ~900k-tri scenes; real-hardware fps check | W | T2.9 | web/src/lib/viewer3d | ≥45 fps on integrated GPU | todo | |
+| T2.14 | Hover raycast acceleration (BVH) for ~900k-tri scenes; real-hardware fps check | W | T2.9 | web/src/lib/viewer3d | ≥45 fps on integrated GPU | doing | agent-W |
 
 ## M3 — CT, vessels, spine
 | ID | Task | Lane | Deps | Paths | Acceptance | Status | Owner |
@@ -76,6 +76,8 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 | T3.3 | `vessels` pipeline (prototype top-hat + shape filters, CTA variant) | P | T2.1 | `pipelines/vessels/` | Public TOF → vessel mesh, no scalp fat | todo | |
 | T3.4 | `spine_mr` pipeline + sagittal-first layout | P | T2.1 | `pipelines/spine_mr/` | Cord/CSF/vertebra surfaces | doing | agent-CT |
 | T3.5 | Knowledge base: body organs, bones, vessels, spine | K | T2.11 | `knowledge/` | Covers all TotalSegmentator open labels | todo | |
+| T3.6 | 3D UI generalisation for body/spine/vessels (layers from regions.json, framing presets, group palette, body-scale explode/clip, system-grouped tree, graceful cards) + model options/backend picker | W | T2.9,T2.10 | `web/src/lib/viewer3d/`, `web/src/routes/model3d/` | Brain unchanged; body + spine mocks render with correct framing | doing | agent-W |
+| T3.7 | Mock mode: synthetic body (CT) and spine models | W | T3.6 | `web/scripts/` | `npm run dev:mock` lists brain, body and spine demo studies | doing | agent-W |
 
 ## M4 — X-ray
 | ID | Task | Lane | Deps | Paths | Acceptance | Status | Owner |
@@ -127,3 +129,4 @@ T8.1 Tauri v2 desktop app (engine sidecar) · T8.2 hosted web mode (OIDC, job qu
 2026-11-21 | agents P/P2/G/W/K + claude | T2.1–T2.11 | done | atlas backend (Dice 0.96 brain, ~0.95 deep grey, ~80 s), SynthSeg 2.0 ONNX (Dice>=0.999 vs TF untiled; adaptive RAM budget), fusion, carved surface + GLB, stats w/ caveats, thumbs, label maps, model job/route, 3D explorer + cards, KB en/hi (62 structures). Verified in Chrome: demo DICOM disc -> 3D model in 136 s with 102 regions. 302 engine + 81 web tests
 2026-11-21 | claude | T2.12 | blocked | publishing model weights to a public GitHub release is outward-facing; awaiting owner. Atlas backend is the default until then
 2026-11-22 | agent-CT | T3.1,T3.2,T3.4 | claim | ct_body classical + labels_surface builder, TotalSegmentator optional backend (licence guard), spine_mr
+2026-11-22 | agent-W | T1.15,T2.14,T3.6,T3.7 | claim | 3D UI generalisation (body/spine/vessels), model options UI, BVH hover, OpenAPI reconcile, body/spine mocks
