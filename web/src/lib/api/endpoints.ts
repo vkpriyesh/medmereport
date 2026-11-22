@@ -242,3 +242,17 @@ export function getKnowledge(lang = 'en'): Promise<Knowledge | null> {
   }
   return p
 }
+
+// ---------- §7 optional model downloads (T7.7) ----------
+export type ModelsInfo = S['ModelsOut']
+export type ModelBundle = S['ModelBundleOut']
+export type BrainModels = S['BrainModels']
+
+/** Bundles (installed state, sizes, hosts, licences) — local only, no network. */
+export async function getModels(): Promise<ModelsInfo> {
+  return MOCK ? (await mock()).mockModels() : api.get<ModelsInfo>('/api/models')
+}
+/** Start downloading a bundle (the only outbound network the app makes; explicit user action only). */
+export async function pullModels(bundle: string): Promise<JobInfo> {
+  return MOCK ? (await mock()).mockPull(bundle) : api.post<JobInfo>('/api/models/pull', { bundle } satisfies S['PullIn'])
+}

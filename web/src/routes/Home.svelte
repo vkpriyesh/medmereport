@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { api, watchJob, type Capabilities } from '../lib/api/client'
-  import { MOCK } from '../lib/api/endpoints'
+  import { getModels, MOCK, type ModelsInfo } from '../lib/api/endpoints'
+  import { brainBundle, formatSize, type Offer } from '../lib/models/consent'
+  import ModelDownload from '../lib/models/ModelDownload.svelte'
   import { t } from '../lib/i18n/index.svelte'
   import { link } from '../lib/router.svelte'
 
@@ -10,7 +12,13 @@
   let capsState = $state<'loading' | 'ok' | 'down' | 'mock'>(MOCK ? 'mock' : 'loading')
   let test = $state<{ state: 'idle' | 'running' | 'ok' | 'fail'; pct: number; msg: string }>({ state: 'idle', pct: 0, msg: '' })
 
+  let models = $state.raw<ModelsInfo | null>(null)
+  let offer = $state.raw<Offer | null>(null)
+  const brainGet = $derived(brainBundle(models))
+  async function loadModels() { try { models = await getModels() } catch { models = null } }
+
   onMount(async () => {
+    void loadModels()
     if (MOCK) return
     try { caps = await api.capabilities(); capsState = 'ok' } catch { caps = null; capsState = 'down' }
   })
@@ -68,6 +76,18 @@
     <div class="row"><span class="faint">{t('status.engine')}</span><b>{caps ? `${t('status.ready')} · v${caps.version}` : t('common.loading')}</b></div>
     <div class="row"><span class="faint">{t('status.ai')}</span><b>{caps ? (caps.onnxruntime ? t('status.installed') : t('status.optional')) : t('common.loading')}</b></div>
   {/if}
+  {#if models}
+    <div class="row">
+      <span class="faint">{t('status.brain')}</span>
+      <b>{t(`status.brain.${models.brain.state}`)}</b>
+      {#if brainGet && !models.offline}
+        <button type="button" class="btn sm" onclick={() => (offer = { kind: 'offer', bundle: brainGet, canSkip: false })}>
+          {t(models.brain.state === 'none' ? 'status.brain.get' : 'status.brain.better', { size: formatSize(brainGet.download_size) })}
+        </button>
+      {:else if models.offline && models.brain.state !== 'synthseg'}<span class="faint">· {t('status.brain.offline')}</span>{/if}
+      <a class="faint manage" href="/models" use:link>{t('status.models.manage')}</a>
+    </div>
+  {/if}
   {#if capsState !== 'mock'}<div class="row test">
     <button class="btn" onclick={selfTest} disabled={test.state === 'running'}>
       {test.state === 'running' ? t('selftest.running') : t('selftest.run')}
@@ -82,7 +102,11 @@
   </div>{/if}
 </section>
 
+{#if offer}<ModelDownload {offer} context="manage" onclose={() => { offer = null; void loadModels() }} ondone={() => void loadModels()} />{/if}
+
 <style>
+  .btn.sm { padding: 6px 12px; font-size: 13px; }
+  .manage { font-size: 13px; }
   .hero { display: grid; grid-template-columns: 1.2fr .8fr; gap: 40px; align-items: center; padding: 72px 0 40px; }
   h1 { font-size: clamp(34px, 5vw, 56px); line-height: 1.05; letter-spacing: -.035em; margin: 12px 0 18px; font-weight: 700;
     background: linear-gradient(90deg, #fff 30%, #a5f3fc); -webkit-background-clip: text; background-clip: text; color: transparent; }
@@ -103,7 +127,7 @@
   .status { padding: 16px 20px; display: grid; gap: 10px; margin-bottom: 60px; }
   @media (max-width: 520px) { .orb { max-width: 140px; } }
   .row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
-  .row > span:first-child { width: 90px; }
+  .row > span:first-child { width: 110px; }
   .bar { flex: 1; min-width: 160px; height: 6px; border-radius: 6px; background: rgba(255,255,255,.08); overflow: hidden; }
   .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .3s; }
   .ok { color: var(--ok); } .bad { color: var(--danger); }

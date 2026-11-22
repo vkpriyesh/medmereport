@@ -278,6 +278,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Models */
+        get: operations["models_api_models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models/pull": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pull */
+        post: operations["pull_api_models_pull_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -307,6 +341,16 @@ export interface components {
              */
             default: boolean;
         };
+        /** BrainModels */
+        BrainModels: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "none" | "atlas" | "synthseg";
+            /** Suggest */
+            suggest: string | null;
+        };
         /** Capabilities */
         Capabilities: {
             /** Version */
@@ -324,6 +368,18 @@ export interface components {
              * @default true
              */
             offline: boolean;
+            /**
+             * Model Downloads
+             * @default true
+             */
+            model_downloads: boolean;
+        };
+        /** Credit */
+        Credit: {
+            /** Licence */
+            licence: string;
+            /** Attribution */
+            attribution: string;
         };
         /** DemoJobIn */
         DemoJobIn: {
@@ -500,6 +556,48 @@ export interface components {
             /** Sources */
             sources: string[];
         };
+        /** ModelAssetOut */
+        ModelAssetOut: {
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Size */
+            size: number;
+            /** Installed */
+            installed: boolean;
+            /** Host */
+            host: string;
+        };
+        /** ModelBundleOut */
+        ModelBundleOut: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Enables */
+            enables: string;
+            /** Size */
+            size: number;
+            /** Download Size */
+            download_size: number;
+            /** Installed */
+            installed: boolean;
+            /** Partial */
+            partial: boolean;
+            /** Usable */
+            usable: boolean;
+            /** Needs */
+            needs?: string | null;
+            /** Pipelines */
+            pipelines: string[];
+            /** Hosts */
+            hosts: string[];
+            /** Credits */
+            credits: components["schemas"]["Credit"][];
+            /** Assets */
+            assets: components["schemas"]["ModelAssetOut"][];
+        };
         /** ModelIn */
         ModelIn: {
             /**
@@ -520,6 +618,14 @@ export interface components {
             auto: string | null;
             /** Options */
             options: components["schemas"]["PipelineOption"][];
+        };
+        /** ModelsOut */
+        ModelsOut: {
+            /** Offline */
+            offline: boolean;
+            /** Bundles */
+            bundles: components["schemas"]["ModelBundleOut"][];
+            brain: components["schemas"]["BrainModels"];
         };
         /** PipelineOption */
         PipelineOption: {
@@ -551,6 +657,11 @@ export interface components {
             level: "info" | "warn" | "error";
             /** Ts */
             ts: number;
+        };
+        /** PullIn */
+        PullIn: {
+            /** Bundle */
+            bundle: string;
         };
         /** Root */
         Root: {
@@ -1249,6 +1360,59 @@ export interface operations {
         requestBody?: {
             content: {
                 "application/json": components["schemas"]["ModelIn"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    models_api_models_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelsOut"];
+                };
+            };
+        };
+    };
+    pull_api_models_pull_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PullIn"];
             };
         };
         responses: {

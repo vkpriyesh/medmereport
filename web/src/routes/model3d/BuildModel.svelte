@@ -4,11 +4,15 @@
   offered, the backend (classical vs TotalSegmentator, an optional install): every backend the engine lists is shown, and
   an unavailable one is disabled with the engine's `reason` (how to get it). Without that route: one "Build" button
   (`pipeline: auto`), the M2 behaviour.
+  Brain MR (T7.7): when no brain model files are installed (or only the basic atlas), "Build" first opens the download
+  consent dialog (`GET /api/models` → `brainOffer`); after the download the build starts automatically.
 -->
 <script lang="ts">
   import { onDestroy } from 'svelte'
   import { ApiError } from '../../lib/api/client'
-  import { cancelJob, getModelOptions, startModel, watch, type BackendOption, type JobInfo, type ModelOptions, type PipelineOption } from '../../lib/api/endpoints'
+  import { cancelJob, getModelOptions, getModels, startModel, watch, type BackendOption, type JobInfo, type ModelOptions, type PipelineOption } from '../../lib/api/endpoints'
+  import { brainOffer, dismissBundle, dismissedBundles, type Offer } from '../../lib/models/consent'
+  import ModelDownload from '../../lib/models/ModelDownload.svelte'
   import Icon from '../../lib/components/Icon.svelte'
   import { has, t } from '../../lib/i18n/index.svelte'
   import { humanize } from '../../lib/viewer3d/names'
@@ -80,7 +84,23 @@
     return j.error ? t('m3d.build.error', { msg: j.error }) : t('m3d.build.failed')
   }
 
+  // ---- optional model download before a brain build (T7.7) ----
+  let offer = $state.raw<Offer | null>(null)
+  let checking = $state(false)
+  const target = () => (options ? (pipeline === 'auto' ? options.recommended : pipeline) : null)
   async function build() {
+    if (target() === 'brain_mr') {
+      checking = true
+      const o = brainOffer(await getModels().catch(() => null), dismissedBundles())
+      checking = false
+      if (o) { offer = o; return }
+    }
+    await run()
+  }
+  function afterDownload() { offer = null; void run() }
+  function skipDownload() { if (offer?.bundle) dismissBundle(offer.bundle.id); offer = null; void run() }
+
+  async function run() {
     error = null; stage = ''; pct = 0; seen.length = 0
     try {
       job = await startModel(studyId, options ? pipeline : 'auto', options && backends.length > 1 ? backend : undefined)
@@ -149,7 +169,7 @@
     {/if}
 
     {#if error}<p class="err" role="alert">{error}</p>{/if}
-    <button type="button" class="btn primary lg" onclick={build} disabled={optsLoading || noneFits}><Icon name="cube" size={17} />{error ? t('m3d.build.retry') : t('m3d.build.cta')}</button>
+    <button type="button" class="btn primary lg" onclick={build} disabled={optsLoading || noneFits || checking}><Icon name="cube" size={17} />{error ? t('m3d.build.retry') : t('m3d.build.cta')}</button>
   {:else}
     <h1 id="b-t">{t('m3d.build.progress')}</h1>
     <p class="muted" aria-live="polite">{stage ? stageName(stage) : t('mstage.starting')}…</p>
@@ -164,6 +184,8 @@
     <button type="button" class="btn" onclick={cancel} disabled={cancelling}>{cancelling ? t('import.progress.cancelling') : t('common.cancel')}</button>
   {/if}
 </section>
+
+{#if offer}<ModelDownload {offer} context="build" onclose={() => (offer = null)} ondone={afterDownload} onskip={skipDownload} />{/if}
 
 <style>
   .build { max-width: 560px; margin: 8vh auto; padding: 28px 30px; display: grid; gap: 12px; }

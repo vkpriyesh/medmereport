@@ -653,6 +653,62 @@
      }
     }
    }
+  },
+  "/api/models": {
+   "get": {
+    "summary": "Models",
+    "operationId": "models_api_models_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelsOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/models/pull": {
+   "post": {
+    "summary": "Pull",
+    "operationId": "pull_api_models_pull_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PullIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JobInfo"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -724,6 +780,36 @@
     ],
     "title": "BackendOption"
    },
+   "BrainModels": {
+    "properties": {
+     "state": {
+      "type": "string",
+      "enum": [
+       "none",
+       "atlas",
+       "synthseg"
+      ],
+      "title": "State"
+     },
+     "suggest": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Suggest"
+     }
+    },
+    "type": "object",
+    "required": [
+     "state",
+     "suggest"
+    ],
+    "title": "BrainModels"
+   },
    "Capabilities": {
     "properties": {
      "version": {
@@ -750,6 +836,11 @@
       "type": "boolean",
       "title": "Offline",
       "default": true
+     },
+     "model_downloads": {
+      "type": "boolean",
+      "title": "Model Downloads",
+      "default": true
      }
     },
     "type": "object",
@@ -761,6 +852,24 @@
      "totalsegmentator"
     ],
     "title": "Capabilities"
+   },
+   "Credit": {
+    "properties": {
+     "licence": {
+      "type": "string",
+      "title": "Licence"
+     },
+     "attribution": {
+      "type": "string",
+      "title": "Attribution"
+     }
+    },
+    "type": "object",
+    "required": [
+     "licence",
+     "attribution"
+    ],
+    "title": "Credit"
    },
    "DemoJobIn": {
     "properties": {
@@ -1180,6 +1289,130 @@
     ],
     "title": "Lobe"
    },
+   "ModelAssetOut": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "description": {
+      "type": "string",
+      "title": "Description"
+     },
+     "size": {
+      "type": "integer",
+      "title": "Size"
+     },
+     "installed": {
+      "type": "boolean",
+      "title": "Installed"
+     },
+     "host": {
+      "type": "string",
+      "title": "Host"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "description",
+     "size",
+     "installed",
+     "host"
+    ],
+    "title": "ModelAssetOut"
+   },
+   "ModelBundleOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "enables": {
+      "type": "string",
+      "title": "Enables"
+     },
+     "size": {
+      "type": "integer",
+      "title": "Size"
+     },
+     "download_size": {
+      "type": "integer",
+      "title": "Download Size"
+     },
+     "installed": {
+      "type": "boolean",
+      "title": "Installed"
+     },
+     "partial": {
+      "type": "boolean",
+      "title": "Partial"
+     },
+     "usable": {
+      "type": "boolean",
+      "title": "Usable"
+     },
+     "needs": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Needs"
+     },
+     "pipelines": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Pipelines"
+     },
+     "hosts": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Hosts"
+     },
+     "credits": {
+      "items": {
+       "$ref": "#/components/schemas/Credit"
+      },
+      "type": "array",
+      "title": "Credits"
+     },
+     "assets": {
+      "items": {
+       "$ref": "#/components/schemas/ModelAssetOut"
+      },
+      "type": "array",
+      "title": "Assets"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "title",
+     "enables",
+     "size",
+     "download_size",
+     "installed",
+     "partial",
+     "usable",
+     "pipelines",
+     "hosts",
+     "credits",
+     "assets"
+    ],
+    "title": "ModelBundleOut"
+   },
    "ModelIn": {
     "properties": {
      "pipeline": {
@@ -1229,6 +1462,31 @@
      "options"
     ],
     "title": "ModelOptions"
+   },
+   "ModelsOut": {
+    "properties": {
+     "offline": {
+      "type": "boolean",
+      "title": "Offline"
+     },
+     "bundles": {
+      "items": {
+       "$ref": "#/components/schemas/ModelBundleOut"
+      },
+      "type": "array",
+      "title": "Bundles"
+     },
+     "brain": {
+      "$ref": "#/components/schemas/BrainModels"
+     }
+    },
+    "type": "object",
+    "required": [
+     "offline",
+     "bundles",
+     "brain"
+    ],
+    "title": "ModelsOut"
    },
    "PipelineOption": {
     "properties": {
@@ -1300,6 +1558,20 @@
      "ts"
     ],
     "title": "ProgressEvent"
+   },
+   "PullIn": {
+    "properties": {
+     "bundle": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,40}$",
+      "title": "Bundle"
+     }
+    },
+    "type": "object",
+    "required": [
+     "bundle"
+    ],
+    "title": "PullIn"
    },
    "Root": {
     "properties": {

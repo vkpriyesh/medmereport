@@ -7,6 +7,7 @@
   import Study from './routes/Study.svelte'
   import View from './routes/View.svelte'
   import Model3D from './routes/Model3DLazy.svelte'
+  import Models from './routes/Models.svelte'
   import { MOCK } from './lib/api/endpoints'
   import { bootstrapSession } from './lib/api/client'
   import { route, resolve } from './lib/router.svelte'
@@ -32,6 +33,7 @@
     { pattern: '/study/:id/view', component: View, wide: true, title: 'title.view' },
     { pattern: '/study/:id/view/:seriesId', component: View, wide: true, title: 'title.view' },
     { pattern: '/study/:id/sagittal', component: View, props: { preset: 'sagittal' }, wide: true, title: 'title.sagittal' },
+    { pattern: '/models', component: Models, title: 'title.models' },
     { pattern: '/learn', component: Placeholder, props: { title: 'nav.learn' }, title: 'nav.learn' },
   ]
   const current = $derived(resolve(routes, route.path) ?? { pattern: '*', component: Home, params: {} as Record<string, string>, wide: false, title: undefined })
