@@ -2,7 +2,8 @@
 // Generates a SYNTHETIC phantom study for UI development (`npm run dev -- --mode mock`).
 // Everything is procedural (ellipsoid head, neck, spine, a toy vessel tree) — no real patient data.
 // Output: web/public/mock/{studies.json, knowledge.json, studies/<id>/{study.json, options.json, files/{series,model}/…}}
-// for three studies: `phantom` (brain MR), `body-phantom` (CT torso, mock-body.mjs), `spine-phantom` (MR spine, mock-spine.mjs).
+// for four studies: `phantom` (brain MR), `body-phantom` (CT torso, mock-body.mjs), `spine-phantom` (MR spine, mock-spine.mjs),
+// `vessels-phantom` (MR angiogram, vessels-only head model, mock-vessels.mjs).
 // PNGs are written with a tiny encoder on top of node:zlib (8-bit grey, or RGB for label maps).
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -12,6 +13,7 @@ import { KNOWLEDGE } from './mock-knowledge.mjs'
 import { encodePng, writeJSON } from './mock-lib.mjs'
 import { LABEL_NAMES, LABEL_TABLE, buildModel, labelCodeLPS } from './mock-model.mjs'
 import { buildSpineStudy } from './mock-spine.mjs'
+import { buildVesselsStudy } from './mock-vessels.mjs'
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'mock')
 const STUDY = 'phantom'
@@ -232,6 +234,7 @@ writeJSON(join(OUT, 'studies', STUDY, 'options.json'), { pipelines: [{ name: 'br
 // ---- body + spine phantoms (M3) ----
 const body = buildBodyStudy(OUT)
 const spine = buildSpineStudy(OUT)
+const vessels = buildVesselsStudy(OUT)
 const row = (s) => ({ id: s.id, description: s.description, study_date: s.study_date, modalities: s.modalities, n_series: s.series.length, adapter: s.adapter })
-writeJSON(join(OUT, 'studies.json'), [row(study), row(body), row(spine)])
+writeJSON(join(OUT, 'studies.json'), [row(study), row(body), row(spine), row(vessels)])
 process.stdout.write(`\nWrote synthetic mock study to ${OUT}\n`)

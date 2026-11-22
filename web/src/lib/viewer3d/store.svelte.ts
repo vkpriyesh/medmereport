@@ -1,6 +1,6 @@
 // Runes wrapper around the pure reducer in state.ts, plus facts about the loaded model.
 import { buildStructureColors, type RGB } from './palette'
-import { planLayers } from './framing'
+import { hasBrain, planLayers, wordingOf, type Wording } from './framing'
 import { initialState, reduce, type Action, type ModelFacts, type ViewerState } from './state'
 import type { Framing, LayerId, RegionsJson } from './types'
 import { vocabRank } from './vocab'
@@ -23,6 +23,10 @@ export class ViewerStore {
   ready = $state(false)
   /** Camera framing / wording of the loaded model (§6). */
   framing = $state<Framing>('head')
+  /** The model has brain regions (enables X-ray cortex, Inside view, Lobes colouring, the brain tour). */
+  brain = $state(true)
+  /** Wording variant for UI strings (`framedKey`): the framing, or `vessels` for a head model without a brain. */
+  wording = $state<Wording>('head')
   facts: ModelFacts = { regions: new Map(), vessels: new Map() }
 
   dispatch = (a: Action) => {
@@ -52,6 +56,8 @@ export class ViewerStore {
     this.colors = buildStructureColors(structs, (id) => lobeBy.get(id) ?? 'other')
     this.index = { keys: [...facts.regions.keys()], vessels: [...facts.vessels.keys()], layers: plan.layers, lobes, present }
     this.framing = framing
+    this.brain = hasBrain(lobes)
+    this.wording = wordingOf(framing, this.brain)
     this.s = { ...initialState(plan.layers, plan.defaults), mode: this.s.mode }
     this.ready = true
   }

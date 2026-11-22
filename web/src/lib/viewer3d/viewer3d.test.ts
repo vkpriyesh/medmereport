@@ -102,6 +102,10 @@ describe('data maps', () => {
     expect(asym.diverging).toBe(true)
     expect(asym.lo).toBe(-asym.hi)
   })
+  it('ignores vessel/skin/bone layers, which cannot be painted (vessels-only models get no data maps)', () => {
+    const vs: StatsJson = { regions: { 'V|cow': { measurements: [m('vessel_volume', 2)] }, 'V|neck': { measurements: [m('vessel_volume', 4)] } } }
+    expect(buildDataMaps(vs)).toEqual([])
+  })
   it('colours missing regions grey', () => {
     const asym = buildDataMaps(stats)[1]
     expect(dataColor(asym, 'M|b')).toEqual(hexToRgb(NO_DATA))

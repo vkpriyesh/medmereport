@@ -4,7 +4,7 @@ import { normaliseOptions } from '../api/endpoints'
 import type { SeriesInfo } from '../api/endpoints'
 import { primarySeriesId } from '../study'
 import { explodeOffset } from './explode'
-import { DEFAULT_SHOW, framedKey, framingOf, planLayers } from './framing'
+import { DEFAULT_SHOW, framedKey, framingOf, hasBrain, planLayers, wordingOf } from './framing'
 import { localizeKnowledge, structureName, vesselKind, type Namer } from './kb'
 import { parseNodeName } from './names'
 import { hexToRgb, LOBE_COLORS, rgbToHsl, structureColor } from './palette'
@@ -49,6 +49,32 @@ describe('framing', () => {
     expect(framedKey('a', 'spine', has)).toBe('a.body')
     expect(framedKey('b', 'spine', has)).toBe('b.spine')
     expect(framedKey('c', 'spine', has)).toBe('c')
+  })
+  it('vessels wording (head-framed, no brain) uses .vessels, else the plain head key — never .body', () => {
+    const keys = new Set(['a.body', 'b.vessels'])
+    const has = (k: string) => keys.has(k)
+    expect(framedKey('a', 'vessels', has)).toBe('a')
+    expect(framedKey('b', 'vessels', has)).toBe('b.vessels')
+  })
+  it('tells brain models from head-framed vessels-only models (T3.9)', () => {
+    expect(hasBrain(['frontal', 'arteries'])).toBe(true)
+    expect(hasBrain(['cerebellum'])).toBe(true)
+    expect(hasBrain(['arteries', 'integument'])).toBe(false)
+    expect(hasBrain([])).toBe(false)
+    expect(wordingOf('head', true)).toBe('head')
+    expect(wordingOf('head', false)).toBe('vessels')
+    expect(wordingOf('spine', false)).toBe('spine')
+    expect(wordingOf('body', false)).toBe('body')
+  })
+  it('neck arteries follow the listed vessel default unless listed themselves (T3.9)', () => {
+    const tof: RegionsJson = { regions: [], pipeline: 'vessels', framing: 'head', layers: [{ id: 'vessel', default: true }, { id: 'body', default: false }] }
+    expect(planLayers(['vessels', 'neck', 'skin'] as LayerId[], tof, 'head').defaults).toEqual({ vessels: true, neck: true, skin: false })
+    const listed: RegionsJson = { regions: [], layers: [{ id: 'vessel', default: true }, { id: 'neck', default: false }] }
+    expect(planLayers(['vessels', 'neck'] as LayerId[], listed, 'head').defaults).toEqual({ vessels: true, neck: false })
+    // brain model with TOF vessels hidden by default: neck stays hidden (M2 behaviour)
+    const brain: RegionsJson = { regions: [], layers: [{ id: 'hemi_L', default: true }, { id: 'vessel', default: false }] }
+    expect(planLayers(['hemi_L', 'vessels', 'neck'] as LayerId[], brain, 'head').defaults).toEqual({ hemi_L: true, vessels: false, neck: false })
+    expect(planLayers(['hemi_L', 'vessels', 'neck'] as LayerId[], null, 'head').defaults).toEqual({ hemi_L: true, vessels: false, neck: false })
   })
 })
 
@@ -157,6 +183,16 @@ describe('model options (§6)', () => {
     expect(o.recommended).toBe('ct_body')
     expect(o.pipelines[0].backends.map((b) => [b.id, b.available])).toEqual([['classical', true], ['totalseg', true]])
     expect(normaliseOptions({ auto: null, options: [] })).toEqual({ pipelines: [], recommended: null })
+  })
+  it('reads the engine T3.9 shape: backends as [{id, available, reason, licence, default}]', () => {
+    const o = normaliseOptions({ auto: 'ct_body', options: [{ pipeline: 'ct_body', score: 0.9, backends: [
+      { id: 'classical', available: true, reason: null, licence: null, default: true },
+      { id: 'totalseg', available: false, reason: 'Install the optional extra', licence: 'Apache-2.0', default: false },
+    ] }] })
+    expect(o.pipelines[0].backends).toEqual([
+      { id: 'classical', available: true, reason: null, licence: null, default: true },
+      { id: 'totalseg', available: false, reason: 'Install the optional extra', licence: 'Apache-2.0', default: false },
+    ])
   })
   it('accepts variants: bare arrays, string pipelines, id → info maps and shared backends', () => {
     expect(normaliseOptions(['spine_mr']).pipelines[0]).toMatchObject({ pipeline: 'spine_mr', score: 1, backends: [] })

@@ -22,10 +22,12 @@ export function percentile(sorted: number[], p: number): number {
   return sorted[a] + (sorted[b] - sorted[a]) * (i - a)
 }
 
-/** All data maps available in `stats` (keys with a finite value in at least `minRegions` regions), in first-seen order. */
+/** All data maps available in `stats` (keys with a finite value in at least `minRegions` paintable regions), in first-seen order. */
 export function buildDataMaps(stats: StatsJson | null | undefined, minRegions = 2): DataMap[] {
   const acc = new Map<string, { label: string; unit: string; values: Map<string, number> }>()
   for (const [rk, r] of Object.entries(stats?.regions ?? {})) {
+    // only clickable regions can be painted; vessel/skin/bone layers (`V|cow`, `H|skin`, `B|…`) keep their own look
+    if (/^[VHB]\|/.test(rk)) continue
     for (const m of r.measurements ?? []) {
       if (typeof m.value !== 'number' || !Number.isFinite(m.value)) continue
       let e = acc.get(m.key)

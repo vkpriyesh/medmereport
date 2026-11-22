@@ -16,12 +16,14 @@
   const s = $derived(store.s)
   const d = (a: Action) => store.dispatch(a)
 
-  /** Translate with the model's framing variant (`m3d.xray.body` → "X-ray", brain keeps "X-ray cortex"). */
-  const ft = (k: string, vars?: Record<string, string | number>) => t(framedKey(k, store.framing, has), vars)
+  /** Translate with the model's wording variant (`m3d.xray.body` → "X-ray", brain keeps "X-ray cortex"). */
+  const ft = (k: string, vars?: Record<string, string | number>) => t(framedKey(k, store.wording, has), vars)
   const layerName = (l: string) => (has(`m3d.layer.${l}`) ? ft(`m3d.layer.${l}`) : l.replace(/_/g, ' '))
+  const groupsUseful = $derived(store.index.lobes.size > 1)
   const colorOpts = $derived<{ id: ColorBy; label: string; title?: string }[]>([
     { id: 'anatomy', label: t('m3d.color.anatomy') },
-    { id: 'lobes', label: ft('m3d.color.lobes') },
+    // colouring by lobe/system only means something with two or more of them (not for a vessels-only model)
+    ...(groupsUseful ? [{ id: 'lobes' as ColorBy, label: ft('m3d.color.lobes') }] : []),
     { id: 'natural', label: t('m3d.color.natural') },
     ...dataMaps.map((m) => ({ id: `data:${m.key}` as ColorBy, label: dataLabel(m), title: t('m3d.color.dataTitle', { name: dataLabel(m) }) })),
   ])
@@ -45,6 +47,7 @@
         <button type="button" role="radio" aria-checked={s.colorBy === o.id} class:on={s.colorBy === o.id} title={o.title} onclick={() => d({ type: 'colorBy', colorBy: o.id })}>{o.label}</button>
       {/each}
     </div>
+    {#if groupsUseful}
     <div class="row">
       <span id="pb-l">{t('m3d.pickBy')}</span>
       <div class="seg sm" role="radiogroup" aria-labelledby="pb-l">
@@ -52,6 +55,7 @@
         <button type="button" role="radio" aria-checked={s.pickBy === 'lobe'} class:on={s.pickBy === 'lobe'} onclick={() => d({ type: 'pickBy', pickBy: 'lobe' })}>{ft('m3d.pickBy.lobe')}</button>
       </div>
     </div>
+    {/if}
   </div>
 
   <div class="sec">

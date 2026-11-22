@@ -1,7 +1,11 @@
-<!-- Searchable structure tree grouped by lobe (brain) or body system (M3), with L/R chips. Fully keyboard operable (buttons + aria-expanded). -->
+<!--
+  Searchable structure tree grouped by lobe (brain) or body system (M3), with L/R chips, plus the model's vessels
+  (so they can be picked without a mouse). Fully keyboard operable (buttons + aria-expanded).
+-->
 <script lang="ts">
-  import { t } from '../i18n/index.svelte'
+  import { has, t } from '../i18n/index.svelte'
   import Icon from '../components/Icon.svelte'
+  import { framedKey } from './framing'
   import { cssRgb, lobeColor } from './palette'
   import type { ViewerStore } from './store.svelte'
   import { LOBE_ORDER, ORDERED_LOBES, vocabRank } from './vocab'
@@ -12,10 +16,13 @@
     lobeName: (id: string) => string
     lobeOfStructure: (id: string) => string
     search: (id: string) => string
+    /** Display name of a vessel key (`V|cow`). */
+    vesselName?: (key: string) => string
     onpick: (key: string) => void
     onpicklobe: (lobe: string) => void
+    onpickvessel?: (key: string) => void
   }
-  let { store, structName, lobeName, lobeOfStructure, search, onpick, onpicklobe }: Props = $props()
+  let { store, structName, lobeName, lobeOfStructure, search, vesselName = (k) => k, onpick, onpicklobe, onpickvessel }: Props = $props()
 
   let q = $state('')
   let input: HTMLInputElement
@@ -42,6 +49,10 @@
   const needle = $derived(q.trim().toLowerCase())
   const filtered = $derived(needle ? groups.map((g) => ({ ...g, items: g.items.filter((i) => search(i.id).includes(needle)) })).filter((g) => g.items.length) : groups)
   const total = $derived(store.index.keys.length)
+  const vessels = $derived(onpickvessel ? store.index.vessels.map((k) => ({ key: k, name: vesselName(k) })) : [])
+  const vesselHits = $derived(needle ? vessels.filter((v) => v.name.toLowerCase().includes(needle)) : vessels)
+  let vesselsOpen = $state(false)
+  const placeholder = $derived(t(framedKey('m3d.search.ph', store.wording, has)))
 
   const sel = $derived(store.s.sel)
   const selStruct = $derived(sel?.type === 'region' ? sel.id.slice(2) : null)
@@ -60,6 +71,7 @@
     if (e.key === 'Enter') {
       const first = filtered[0]?.items[0]
       if (first) { e.preventDefault(); onpick(`${defaultSide(first.hs)}|${first.id}`) }
+      else if (vesselHits[0] && onpickvessel) { e.preventDefault(); onpickvessel(vesselHits[0].key) }
     } else if (e.key === 'Escape') { if (q) { q = ''; e.stopPropagation() } else input.blur() }
     else if (e.key === 'ArrowDown') { e.preventDefault(); listEl.querySelector<HTMLElement>('button')?.focus() }
   }
@@ -69,10 +81,10 @@
   <label class="search">
     <Icon name="search" size={15} />
     <span class="sr-only">{t('m3d.search')}</span>
-    <input bind:this={input} bind:value={q} type="search" placeholder={t('m3d.search.ph')} autocomplete="off" spellcheck="false" {onkeydown} />
+    <input bind:this={input} bind:value={q} type="search" {placeholder} autocomplete="off" spellcheck="false" {onkeydown} />
     <kbd aria-hidden="true">/</kbd>
   </label>
-  <div class="th"><span>{t('m3d.structures')}</span><span class="n">{total}</span></div>
+  <div class="th"><span>{t('m3d.structures')}</span><span class="n">{total + vessels.length}</span></div>
   <div class="list" bind:this={listEl}>
     {#each filtered as g (g.lobe)}
       {@const isOpen = !!needle || !!open[g.lobe]}
@@ -108,8 +120,33 @@
         {/if}
       </div>
     {:else}
-      <p class="none faint">{t('m3d.noMatch')}</p>
+      {#if !vesselHits.length}<p class="none faint">{needle ? t('m3d.noMatch') : t('m3d.noStructures')}</p>{/if}
     {/each}
+    {#if vesselHits.length}
+      {@const isOpen = !!needle || vesselsOpen || !total}
+      <div class="lobe">
+        <div class="lh">
+          <button type="button" class="lt" aria-expanded={isOpen} onclick={() => (vesselsOpen = !isOpen)}>
+            <span class="car" class:o={isOpen} aria-hidden="true">▶</span>
+            <span class="sw" style="background:{lobeColor('arteries')}" aria-hidden="true"></span>
+            <span class="ln">{t('m3d.tree.vessels')}</span>
+            <span class="n">{vesselHits.length}</span>
+          </button>
+        </div>
+        {#if isOpen}
+          <ul role="list">
+            {#each vesselHits as v (v.key)}
+              <li class="it" class:sel={sel?.type === 'vessel' && sel.id === v.key}>
+                <button type="button" class="nm" onclick={() => onpickvessel?.(v.key)} aria-current={sel?.type === 'vessel' && sel.id === v.key ? 'true' : undefined}>
+                  <span class="dot" style="background:#e11d48" aria-hidden="true"></span>
+                  <span class="tx">{v.name}</span>
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
+    {/if}
   </div>
 </div>
 

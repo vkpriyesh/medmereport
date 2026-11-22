@@ -151,10 +151,13 @@ export function buildSpineStudy(OUT) {
     regions,
   })
   writeJSON(join(files, 'model', 'stats.json'), {
-    summary: [
-      measure('vertebrae_count', 'Vertebrae found (synthetic)', V.length, '', null, null, [{ text: 'Synthetic phantom: every number on this page is made up for interface development.', severity: 'warn' }]),
-      measure('lumbar_lordosis', 'Lumbar curve angle (synthetic)', 40 + rnd() * 10, '°', null),
-    ],
+    // the engine's spine_mr summary keys (T3.9), as a key → Measurement map
+    summary: {
+      canal_length_mm: measure('canal_length_mm', 'Spinal canal length in view (synthetic)', TOP - S1.cy, 'mm', null, null, [{ text: 'Synthetic phantom: every number on this page is made up for interface development.', severity: 'warn' }]),
+      cord_length_mm: measure('cord_length_mm', 'Spinal cord length in view (synthetic)', TOP + 10 - L1.cy, 'mm', null),
+      discs_detected: measure('discs_detected', 'Discs detected (synthetic)', V.filter((lv) => lv.disc).length, '', null),
+      vertebral_bodies_detected: measure('vertebral_bodies_detected', 'Vertebral bodies detected (synthetic)', V.length, '', null),
+    },
     regions: statsRegions,
   })
   writeJSON(join(files, 'model', 'status.json'), { pipeline: 'spine_mr', version: '0', created: new Date().toISOString(), warnings: ['Synthetic spine phantom (dev mock).'] })

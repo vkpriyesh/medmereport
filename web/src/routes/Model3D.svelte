@@ -78,8 +78,11 @@
   const regionByKey = $derived(new Map((regions?.regions ?? []).map((r) => [r.key, r])))
   const lobeOfStructure = (s: string) => structureLobe(kb, s)
   const framing = $derived(framingOf(regions, status?.pipeline))
-  /** UI string with the model's framing variant (`key.body` for torso/spine models), brain wording otherwise. */
-  const ft = (key: string, vars?: Record<string, string | number>) => t(framedKey(key, framing, has), vars)
+  /**
+   * UI string with the model's wording variant (`key.body` for torso/spine models, `key.vessels` for a head model
+   * without brain regions), brain wording otherwise.
+   */
+  const ft = (key: string, vars?: Record<string, string | number>) => t(framedKey(key, store.ready ? store.wording : framing, has), vars)
 
   const measureLabel = (m: Measurement) => tr(`measure.${m.key}`) ?? m.label
   const dataLabel = (m: DataMap) => tr(`measure.${m.key}.short`) ?? tr(`measure.${m.key}`) ?? m.label
@@ -102,6 +105,7 @@
   }
   function pickFromTree(key: string) { if (s.quiz) return; select({ type: 'region', id: key }, true) }
   function pickLobe(lobe: string) { if (s.quiz) return; select({ type: 'lobe', id: lobe }, true) }
+  function pickVessel(key: string) { if (s.quiz) return; select({ type: 'vessel', id: key }, true) }
   function view(v: ViewPreset) { store.dispatch({ type: 'view', view: v }); scene?.view(v) }
   function reset() { store.dispatch({ type: 'reset' }); scene?.home() }
 
@@ -207,7 +211,7 @@
     <aside id="m3d-controls" class="left panel" class:open={controlsOpen} aria-label={t('m3d.controls')}>
       <div class="lh">
         <a class="back" href="/study/{sid}" use:link aria-label={t('view.back')} title={t('view.back')}><Icon name="back" size={16} /></a>
-        <div class="st"><b>{t('m3d.title')}</b><small class="faint">{study?.description ?? ''}</small></div>
+        <div class="st"><h1 class="pt">{t('m3d.title')}</h1><small class="faint">{study?.description ?? ''}</small></div>
         <button type="button" class="btn icon mob" aria-label={t('card.close')} onclick={() => (controlsOpen = false)}><Icon name="close" size={16} /></button>
       </div>
       {#if store.ready}
@@ -216,7 +220,8 @@
             <StructureTree bind:this={treeRef} {store}
               structName={(id) => structureName(namer, id)} lobeName={(id) => lobeName(namer, id)} lobeOfStructure={lobeOfStructure}
               search={(id) => searchText(kb, id, structureName(namer, id))}
-              onpick={pickFromTree} onpicklobe={pickLobe} />
+              vesselName={(k) => selName({ type: 'vessel', id: k })}
+              onpick={pickFromTree} onpicklobe={pickLobe} onpickvessel={pickVessel} />
           {/snippet}
         </ControlsPanel>
       {/if}
@@ -248,13 +253,7 @@
 {/if}
 
 <style>
-  .center { min-height: 50vh; display: grid; place-items: center; }
-  .spinner { width: 38px; height: 38px; border-radius: 50%; border: 2px solid rgba(94,234,212,.15); border-top-color: var(--accent); animation: spin 1s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .msg { max-width: 560px; margin: 10vh auto; padding: 26px; }
-  .msg h1 { margin: 0 0 8px; font-size: 22px; }
   .msg.over { position: absolute; z-index: 40; left: 50%; top: 20%; transform: translateX(-50%); margin: 0; width: min(560px, calc(100% - 32px)); }
-  .mono { font-family: var(--mono); font-size: 12px; }
   .crumbs { font-size: 13px; padding-top: 18px; }
   .crumbs a { color: var(--text-2); }
 
@@ -266,7 +265,7 @@
   .back { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 9px; color: var(--text-2); border: 1px solid var(--line); }
   .back:hover { color: var(--text); background: rgba(255,255,255,.05); }
   .st { display: grid; min-width: 0; flex: 1; }
-  .st b { font-size: 14px; }
+  .st .pt { margin: 0; font-size: 14px; font-weight: 650; line-height: 1.3; }
   .st small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
   .top { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 30; }
   .bottom { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 25; display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: calc(100% - 28px); }
@@ -283,7 +282,8 @@
   @media (max-width: 900px) {
     .mob { display: inline-flex; }
     .left, .right { left: 8px; right: 8px; width: auto; top: auto; bottom: 74px; max-height: min(62dvh, 560px); display: none;
-      border-radius: 18px; box-shadow: 0 -20px 50px -20px rgba(0,0,0,.8), 0 0 0 1px var(--line-2); }
+      border-radius: 18px; box-shadow: 0 -20px 50px -20px rgba(0,0,0,.8), 0 0 0 1px var(--line-2);
+      background: var(--panel-solid); backdrop-filter: none; } /* opaque sheets: text stays readable over the model */
     .right { height: min(62dvh, 560px); }
     .left.open, .right.open { display: flex; animation: sheet .25s ease both; }
     .right.open :global(.cardx .ihead .x) { right: 48px; }

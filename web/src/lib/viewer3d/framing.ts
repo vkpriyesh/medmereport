@@ -51,6 +51,8 @@ export function planLayers(present: Iterable<LayerId>, regions: RegionsJson | nu
   const listed = new Map<LayerId, boolean | undefined>()
   for (const l of regions?.layers ?? []) if (l && typeof l.id === 'string') listed.set(layerOfGroup(l.id), l.default)
   const layers = [...LAYER_ORDER.filter((l) => have.has(l)), ...[...have].filter((l) => !LAYER_ORDER.includes(l))]
+  // `neck` is a UI split of the `vessel` group (V__neck): unless listed itself, it follows the listed vessel default
+  if (!listed.has('neck') && typeof listed.get('vessels') === 'boolean') listed.set('neck', listed.get('vessels'))
   const fb = DEFAULT_SHOW[framing]
   const defaults: Partial<Record<LayerId, boolean>> = {}
   for (const l of layers) {
@@ -60,17 +62,32 @@ export function planLayers(present: Iterable<LayerId>, regions: RegionsJson | nu
   return { layers, defaults }
 }
 
+/** Lobes that only a brain model has (the brain-specific controls: X-ray cortex, Inside view, Lobes colouring). */
+export const BRAIN_LOBES: ReadonlySet<string> = BRAIN
+/** True when the model has brain regions (not just head-framed vessels or skin, e.g. a TOF-only `vessels` model). */
+export const hasBrain = (lobes: Iterable<string>): boolean => { for (const l of lobes) if (BRAIN.has(l)) return true; return false }
+
+/**
+ * Wording variant for UI strings: the framing, except a head-framed model without brain regions (TOF `vessels`)
+ * which gets `vessels` wording (no "cortex", "hemisphere" or "lobes").
+ */
+export type Wording = Framing | 'vessels'
+export const wordingOf = (framing: Framing, brain: boolean): Wording => (framing === 'head' && !brain ? 'vessels' : framing)
+
 /** Layers whose regions become see-through in X-ray mode even when not "outer" (they hide what is inside). */
 export const XRAY_GHOST: ReadonlySet<LayerId> = new Set<LayerId>(['muscle', 'bone'])
 /** Layers X-ray turns on (inner anatomy). */
 export const XRAY_REVEAL: LayerId[] = ['deep', 'ventricle', 'vessels', 'organ', 'airway', 'spine']
 
 /**
- * i18n key with a framing variant: `key.spine` → `key.body` (spine and body share wording) → `key`.
+ * i18n key with a framing variant: `key.spine` → `key.body` (spine and body share wording) → `key`;
+ * `vessels` (head-framed, no brain): `key.vessels` → `key`.
  * `has` is the dictionary lookup (injected for tests).
  */
-export function framedKey(key: string, framing: Framing, has: (k: string) => boolean): string {
+export function framedKey(key: string, framing: Wording, has: (k: string) => boolean): string {
   if (framing === 'head') return key
+  // head-framed vessels: own wording, else the head wording (arteries, skin of the head), never the torso's
+  if (framing === 'vessels') return has(`${key}.vessels`) ? `${key}.vessels` : key
   if (framing === 'spine' && has(`${key}.spine`)) return `${key}.spine`
   if (has(`${key}.body`)) return `${key}.body`
   return key
