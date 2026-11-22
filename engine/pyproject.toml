@@ -31,6 +31,8 @@ dependencies = [
 
 [project.optional-dependencies]
 ai = ["onnxruntime>=1.19"]
+# heavy (torch + nnU-Net); install torch from the CPU index. Weights via `medmereport models pull totalseg-total-fast`.
+totalseg = ["TotalSegmentator>=2.11,<3", "nibabel>=5.2"]
 
 [project.scripts]
 medmereport = "medmereport.cli.main:main"

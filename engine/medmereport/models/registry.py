@@ -67,6 +67,14 @@ SYNTHSEG_ATTRIBUTION = (
     "SynthSeg 2.0, B. Billot et al., Medical Image Analysis 2023; PNAS 2023. https://github.com/BBillot/SynthSeg"
 )
 
+# TotalSegmentator open-task weights (Apache-2.0), mirrored from the upstream GitHub release (pinned by sha256).
+_TS_RELEASE = "https://github.com/wasserth/TotalSegmentator/releases/download/v2.0.0-weights/"
+TOTALSEG_LICENCE = "Apache-2.0 (TotalSegmentator open task 'total'; code and weights)"
+TOTALSEG_ATTRIBUTION = (
+    "TotalSegmentator, J. Wasserthal et al., Radiology: Artificial Intelligence 2023, doi:10.1148/ryai.230024. "
+    "https://github.com/wasserth/TotalSegmentator"
+)
+
 ASSETS: dict[str, Asset] = {
     a.name: a
     for a in (
@@ -113,6 +121,17 @@ ASSETS: dict[str, Asset] = {
             attribution=HO_ATTRIBUTION,
             description="Harvard-Oxford subcortical atlas, max-probability thr0, 1 mm (21 labels)",
             bundle="atlas-ho",
+        ),
+        Asset(
+            name="totalseg-total-fast",
+            filename="totalseg/Dataset297_TotalSegmentator_total_3mm_1559subj.zip",
+            url=_TS_RELEASE + "Dataset297_TotalSegmentator_total_3mm_1559subj.zip",
+            sha256="0baa2c8de2975600eb31801dd5c1825cd2b356f794498659cf3348714c073394",
+            size=135_386_075,
+            licence=TOTALSEG_LICENCE,
+            attribution=TOTALSEG_ATTRIBUTION,
+            description="TotalSegmentator 'total' fast (3 mm) nnU-Net weights: 117 body structures (CT, CPU)",
+            bundle="totalseg",
         ),
         *(
             Asset(
