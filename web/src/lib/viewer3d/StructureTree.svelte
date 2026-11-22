@@ -1,10 +1,10 @@
-<!-- Searchable structure tree grouped by lobe, with L/R chips. Fully keyboard operable (buttons + aria-expanded). -->
+<!-- Searchable structure tree grouped by lobe (brain) or body system (M3), with L/R chips. Fully keyboard operable (buttons + aria-expanded). -->
 <script lang="ts">
   import { t } from '../i18n/index.svelte'
   import Icon from '../components/Icon.svelte'
   import { cssRgb, lobeColor } from './palette'
   import type { ViewerStore } from './store.svelte'
-  import { LOBE_ORDER } from './vocab'
+  import { LOBE_ORDER, ORDERED_LOBES, vocabRank } from './vocab'
 
   interface Props {
     store: ViewerStore
@@ -35,7 +35,8 @@
     return order.filter((l) => by.has(l)).map((l) => ({
       lobe: l,
       items: by.get(l)!.map((id) => ({ id, name: structName(id), hs: [...store.index.present.get(id)!].sort() }))
-        .sort((a, b) => a.name.localeCompare(b.name)),
+        // anatomical order where it means something (vertebrae C1 → S1), alphabetical otherwise
+        .sort(ORDERED_LOBES.has(l) ? (a, b) => vocabRank(a.id) - vocabRank(b.id) || a.name.localeCompare(b.name) : (a, b) => a.name.localeCompare(b.name)),
     }))
   })
   const needle = $derived(q.trim().toLowerCase())

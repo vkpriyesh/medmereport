@@ -2,12 +2,13 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
   import Icon from '../components/Icon.svelte'
-  import { t } from '../i18n/index.svelte'
+  import { has, t } from '../i18n/index.svelte'
   import type { DataMap } from './datamap'
-  import { LOBE_COLORS } from './palette'
+  import { framedKey } from './framing'
+  import { LAYER_COLORS } from './palette'
   import type { Action } from './state'
   import type { ViewerStore } from './store.svelte'
-  import type { Axis, ColorBy, LayerId } from './types'
+  import type { Axis, ColorBy } from './types'
 
   interface Props { store: ViewerStore; dataMaps: DataMap[]; dataLabel: (m: DataMap) => string; tree: Snippet }
   let { store, dataMaps, dataLabel, tree }: Props = $props()
@@ -15,13 +16,12 @@
   const s = $derived(store.s)
   const d = (a: Action) => store.dispatch(a)
 
-  const LAYER_COLOR: Record<LayerId, string> = {
-    hemi_L: LOBE_COLORS.frontal, hemi_R: LOBE_COLORS.parietal, cerebellum: LOBE_COLORS.cerebellum, brainstem: LOBE_COLORS.brainstem,
-    deep: LOBE_COLORS.subcortical, ventricle: LOBE_COLORS.ventricles, vessels: '#ef4444', neck: '#f87171', bone: '#e7e2d3', skin: '#cbd5e1',
-  }
+  /** Translate with the model's framing variant (`m3d.xray.body` → "X-ray", brain keeps "X-ray cortex"). */
+  const ft = (k: string, vars?: Record<string, string | number>) => t(framedKey(k, store.framing, has), vars)
+  const layerName = (l: string) => (has(`m3d.layer.${l}`) ? ft(`m3d.layer.${l}`) : l.replace(/_/g, ' '))
   const colorOpts = $derived<{ id: ColorBy; label: string; title?: string }[]>([
     { id: 'anatomy', label: t('m3d.color.anatomy') },
-    { id: 'lobes', label: t('m3d.color.lobes') },
+    { id: 'lobes', label: ft('m3d.color.lobes') },
     { id: 'natural', label: t('m3d.color.natural') },
     ...dataMaps.map((m) => ({ id: `data:${m.key}` as ColorBy, label: dataLabel(m), title: t('m3d.color.dataTitle', { name: dataLabel(m) }) })),
   ])
@@ -49,7 +49,7 @@
       <span id="pb-l">{t('m3d.pickBy')}</span>
       <div class="seg sm" role="radiogroup" aria-labelledby="pb-l">
         <button type="button" role="radio" aria-checked={s.pickBy === 'structure'} class:on={s.pickBy === 'structure'} onclick={() => d({ type: 'pickBy', pickBy: 'structure' })}>{t('m3d.pickBy.structure')}</button>
-        <button type="button" role="radio" aria-checked={s.pickBy === 'lobe'} class:on={s.pickBy === 'lobe'} onclick={() => d({ type: 'pickBy', pickBy: 'lobe' })}>{t('m3d.pickBy.lobe')}</button>
+        <button type="button" role="radio" aria-checked={s.pickBy === 'lobe'} class:on={s.pickBy === 'lobe'} onclick={() => d({ type: 'pickBy', pickBy: 'lobe' })}>{ft('m3d.pickBy.lobe')}</button>
       </div>
     </div>
   </div>
@@ -59,11 +59,11 @@
     <ul class="layers" role="list">
       {#each store.index.layers as l (l)}
         <li><button type="button" role="switch" aria-checked={!!s.show[l]} class="tg" class:on={!!s.show[l]} onclick={() => d({ type: 'layer', layer: l })}>
-          <span><span class="dot" style="background:{LAYER_COLOR[l]}" aria-hidden="true"></span>{t(`m3d.layer.${l}`)}</span><span class="sw" aria-hidden="true"></span>
+          <span><span class="dot" style="background:{LAYER_COLORS[l] ?? '#cbd5e1'}" aria-hidden="true"></span>{layerName(l)}</span><span class="sw" aria-hidden="true"></span>
         </button></li>
       {/each}
-      <li><button type="button" role="switch" aria-checked={s.xray} class="tg" class:on={s.xray} onclick={() => d({ type: 'xray' })} title={t('m3d.xray.title')}>
-        <span><span class="dot" style="background:#e2e8f0" aria-hidden="true"></span>{t('m3d.xray')} <kbd>X</kbd></span><span class="sw" aria-hidden="true"></span>
+      <li><button type="button" role="switch" aria-checked={s.xray} class="tg" class:on={s.xray} onclick={() => d({ type: 'xray' })} title={ft('m3d.xray.title')}>
+        <span><span class="dot" style="background:#e2e8f0" aria-hidden="true"></span>{ft('m3d.xray')} <kbd>X</kbd></span><span class="sw" aria-hidden="true"></span>
       </button></li>
       <li><button type="button" role="switch" aria-checked={s.isolate} class="tg" class:on={s.isolate} disabled={!s.sel} onclick={() => d({ type: 'isolate' })} title={t('m3d.isolate.title')}>
         <span><span class="dot" style="background:var(--accent)" aria-hidden="true"></span>{t('m3d.isolate')} <kbd>I</kbd></span><span class="sw" aria-hidden="true"></span>

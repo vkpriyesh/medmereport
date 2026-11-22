@@ -20,7 +20,8 @@
     cardOpen: boolean
   }
   let { store, canTour, canQuiz, onview, onshot, onreset, ontour, onquiz, ontoggleControls, ontoggleCard, controlsOpen, cardOpen }: Props = $props()
-  const VIEWS: ViewPreset[] = ['left', 'front', 'top', 'right', 'back', 'below', 'inside']
+  // "Inside" hides the right hemisphere: brain only
+  const VIEWS = $derived<ViewPreset[]>(['left', 'front', 'top', 'right', 'back', 'below', ...(store.framing === 'head' ? ['inside' as const] : [])])
   const s = $derived(store.s)
 </script>
 

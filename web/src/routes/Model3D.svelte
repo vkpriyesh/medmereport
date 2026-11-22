@@ -12,8 +12,9 @@
   import { link } from '../lib/router.svelte'
   import ControlsPanel from '../lib/viewer3d/ControlsPanel.svelte'
   import { buildDataMaps, type DataMap } from '../lib/viewer3d/datamap'
+  import { framedKey, framingOf } from '../lib/viewer3d/framing'
   import Dock from '../lib/viewer3d/Dock.svelte'
-  import { localizeKnowledge, lobeName, regionName, searchText, structureLobe, structureName, type Namer } from '../lib/viewer3d/kb'
+  import { localizeKnowledge, lobeName, regionName, searchText, structureLobe, structureName, vesselKind, type Namer } from '../lib/viewer3d/kb'
   import Legend from '../lib/viewer3d/Legend.svelte'
   import QuizBanner from '../lib/viewer3d/QuizBanner.svelte'
   import Scene3D from '../lib/viewer3d/Scene3D.svelte'
@@ -76,14 +77,17 @@
   const dataMaps = $derived(buildDataMaps(stats))
   const regionByKey = $derived(new Map((regions?.regions ?? []).map((r) => [r.key, r])))
   const lobeOfStructure = (s: string) => structureLobe(kb, s)
+  const framing = $derived(framingOf(regions, status?.pipeline))
+  /** UI string with the model's framing variant (`key.body` for torso/spine models), brain wording otherwise. */
+  const ft = (key: string, vars?: Record<string, string | number>) => t(framedKey(key, framing, has), vars)
 
   const measureLabel = (m: Measurement) => tr(`measure.${m.key}`) ?? m.label
   const dataLabel = (m: DataMap) => tr(`measure.${m.key}.short`) ?? tr(`measure.${m.key}`) ?? m.label
   const selName = (x: Sel): string =>
-    x.type === 'lobe' ? lobeName(namer, x.id) : x.type === 'vessel' ? t(/neck/i.test(x.id) ? 'card.vessel.neck' : 'card.vessel.brain') : regionName(namer, x.id)
+    x.type === 'lobe' ? lobeName(namer, x.id) : x.type === 'vessel' ? t(`card.vessel.${vesselKind(x.id, framing)}`) : regionName(namer, x.id)
   const labelFor = (x: Sel) => ({
     title: selName(x),
-    sub: x.type === 'region' ? lobeName(namer, lobeOfStructure(x.id.slice(2))) : x.type === 'vessel' ? t('m3d.vessel.sub') : undefined,
+    sub: x.type === 'region' ? lobeName(namer, lobeOfStructure(x.id.slice(2))) : x.type === 'vessel' ? ft('m3d.vessel.sub') : undefined,
   })
 
   const s = $derived(store.s)
@@ -134,7 +138,7 @@
   }
 
   const ctx = $derived<CardCtx>({
-    studyId, kb, namer, stats, regions, regionByKey, status, store, measureLabel, tourLen: tour.length,
+    studyId, kb, namer, stats, regions, regionByKey, status, store, measureLabel, tourLen: tour.length, framing, ft, study,
     act: { select, tour: startTour, tourStep, tourEnd, quiz: startQuiz, showVessels },
   })
 
@@ -185,8 +189,8 @@
     {#key params.id}
       <Scene3D
         bind:this={scene}
-        url={modelUrl(params.id)} {store} {regions} lobeOf={lobeOfStructure} {dataMaps} label={labelFor}
-        ariaLabel={t('m3d.canvas')}
+        url={modelUrl(params.id)} {store} {regions} {framing} lobeOf={lobeOfStructure} {dataMaps} label={labelFor}
+        ariaLabel={ft('m3d.canvas')}
         onprogress={(p) => (loadPct = p)}
         onerror={(m) => (sceneErr = m)}
         onloaded={() => (modelReady = true)}

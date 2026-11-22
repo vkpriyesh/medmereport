@@ -5,7 +5,7 @@
   import { has, t } from '../i18n/index.svelte'
   import { link } from '../router.svelte'
   import { lobeName, regionName, structureLobe } from '../viewer3d/kb'
-  import { otherSide, splitKey } from '../viewer3d/names'
+  import { humanize, otherSide, splitKey } from '../viewer3d/names'
   import { lobeColor } from '../viewer3d/palette'
   import Disclaimer from './Disclaimer.svelte'
   import MeasurementItem from './MeasurementItem.svelte'
@@ -39,7 +39,7 @@
     <button type="button" class="chip" onclick={() => ctx.act.select({ type: 'lobe', id: lobe }, true)} title={t('m3d.selectLobe', { name: lobeName(ctx.namer, lobe) })}>
       <span class="dot" style="background:{lobeColor(lobe)}"></span>{lobeName(ctx.namer, lobe)}
     </button>
-    {#if st?.category}<span class="chip">{t(`cat.${st.category}`)}</span>{/if}
+    {#if st?.category}<span class="chip">{has(`cat.${st.category}`) ? t(`cat.${st.category}`) : humanize(st.category)}</span>{/if}
   </div>
   <h2>{name}</h2>
   {#if st?.tagline}<p class="tag">{st.tagline}</p>{/if}

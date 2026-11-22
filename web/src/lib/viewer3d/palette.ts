@@ -15,6 +15,35 @@ export const LOBE_COLORS: Record<string, string> = {
   ventricles: '#93c5fd',
   white_matter: '#e2e8f0',
   arteries: '#ef4444',
+  // body systems (M3): bone ivory, distinct hue per organ system, vessels red, skin neutral
+  integument: '#d6c2b4',
+  skeleton: '#e9dfc7',
+  spinal_column: '#e4d6b4',
+  nervous_spine: '#facc15',
+  respiratory: '#7dd3fc',
+  cardiovascular: '#dc2626',
+  digestive: '#f59e0b',
+  urinary: '#a78bfa',
+  endocrine: '#2dd4bf',
+  lymphatic: '#a3e635',
+  reproductive: '#f472b6',
+  muscular: '#c2410c',
+  nervous: '#fde68a',
+  sensory: '#38bdf8',
+  body_regions: '#94a3b8',
+}
+/** Pale systems (bone, skin): per-structure variation keeps them light instead of the brain's mid-tone clamp. */
+const LIGHT_LOBES = new Set(['integument', 'skeleton', 'spinal_column'])
+/** "Natural" colours for body systems (brain lobes keep NATURAL / NATURAL_DEEP). */
+export const NATURAL_BY_LOBE: Record<string, string> = {
+  integument: '#d9b8a3', skeleton: '#ece3cf', spinal_column: '#e6dcc4', nervous_spine: '#f2e6c0', respiratory: '#e9a6a6',
+  cardiovascular: '#9f1d20', digestive: '#b9735a', urinary: '#8f4a3a', endocrine: '#c9855c', lymphatic: '#7a2e3a',
+  reproductive: '#c98d8d', muscular: '#a3473f',
+}
+/** Swatch colour for each layer toggle. */
+export const LAYER_COLORS: Record<string, string> = {
+  hemi_L: '#f472b6', hemi_R: '#60a5fa', cerebellum: '#a3e635', brainstem: '#fb7185', deep: '#22d3ee', ventricle: '#93c5fd',
+  organ: '#f59e0b', airway: '#7dd3fc', spine: '#facc15', muscle: '#c2410c', vessels: '#ef4444', neck: '#f87171', bone: '#e7e2d3', skin: '#cbd5e1',
 }
 export const FALLBACK = '#cbd5e1'
 export const NO_DATA = '#3a4252'
@@ -63,6 +92,10 @@ export function hslToRgb([h, s, l]: [number, number, number]): RGB {
 export function structureColor(lobe: string, idx: number, count: number): RGB {
   const base = rgbToHsl(hexToRgb(lobeColor(lobe)))
   const t = count > 1 ? idx / (count - 1) : 0.5
+  if (LIGHT_LOBES.has(lobe)) {
+    const l = Math.max(0.7, Math.min(0.9, base[2] + (t - 0.5) * 0.12))
+    return hslToRgb([(base[0] + (t - 0.5) * 0.04 + 1) % 1, Math.max(0.25, base[1] - (idx % 2) * 0.12), l]).map(Math.round) as RGB
+  }
   const h = (base[0] + (t - 0.5) * 0.09 + 1) % 1
   const l = Math.max(0.36, Math.min(0.62, base[2] * 0.86 + (t - 0.5) * 0.22))
   const s = Math.max(0.45, base[1] - (idx % 2) * 0.12)

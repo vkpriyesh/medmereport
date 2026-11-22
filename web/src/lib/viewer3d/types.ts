@@ -1,5 +1,7 @@
-// Shapes of the M2 3D-model artifacts (docs/API_CONTRACT.md §5) and the knowledge base (GET /api/knowledge).
-// Every field the engine may omit is optional so a partial artifact never crashes the UI.
+// Shapes of the 3D-model artifacts (docs/API_CONTRACT.md §5/§6) and the knowledge base (GET /api/knowledge).
+// Model artifacts are files, not OpenAPI models, so they are typed here. The knowledge base is derived from the
+// generated OpenAPI types but loosened: every field the engine may omit is optional so partial data never crashes the UI.
+import type { components } from '../api/schema'
 
 export type Hemi = 'L' | 'R' | 'M'
 
@@ -27,11 +29,22 @@ export interface RegionInfo {
   centroid?: [number, number, number]
 }
 
+/** Camera framing / default layout chosen by the pipeline (§6). */
+export type Framing = 'head' | 'body' | 'spine'
+/** A layer toggle listed by the pipeline: a render group id (`hemi_L`, `organ`, `bone`, `vessel`, `body`…). */
+export interface LayerInfo { id: string; default?: boolean }
+
 export interface RegionsJson {
   backend?: string
   licence?: string
   caveats?: (string | Caveat)[]
   regions: RegionInfo[]
+  /** §6 */
+  pipeline?: string
+  framing?: Framing | string
+  layers?: LayerInfo[]
+  /** Series id the 2D viewer should open first (spine: the sagittal series). */
+  primary_series?: string | null
 }
 
 export interface Thumb { view: 'axial' | 'sagittal' | 'coronal' | string; img: string; series: string | null; slice: number }
@@ -44,26 +57,18 @@ export interface StatsJson {
 
 export interface ModelStatus { pipeline?: string; version?: string; created?: string; warnings?: string[] }
 
-// ---------- knowledge base ----------
-export interface KbStructure {
-  name: string
-  aka?: string[]
-  lobe: string
-  category?: string
-  tagline?: string
-  overview?: string
-  functions?: string[]
-  connections?: string[]
-  clinical?: string[]
-  lateralization?: string
-  fact?: string
+// ---------- knowledge base (generated engine models, loosened) ----------
+type KS = components['schemas']
+/** Required keys K, everything else optional. */
+type Loose<T, K extends keyof T> = Pick<T, K> & Partial<Omit<T, K>>
+export type KbStructure = Loose<Omit<KS['Structure'], 'category' | 'brodmann'>, 'name' | 'lobe'> & {
+  /** Engine enum (cortex, organ, bone…); unknown values are shown humanised. */
+  category?: KS['Structure']['category'] | (string & {})
   brodmann?: number[] | string | null
-  blood_supply?: string
-  sources?: string[]
 }
-export interface KbLobe { name: string; tagline?: string; overview?: string; functions?: string[]; clinical?: string[]; fact?: string }
-export interface KbVessel { name: string; supplies?: string; note?: string }
-export interface KbSequence { name: string; what?: string; why?: string }
+export type KbLobe = Loose<KS['Lobe'], 'name'>
+export type KbVessel = Loose<KS['Vessel'], 'name'>
+export type KbSequence = Loose<KS['Sequence'], 'name'>
 export interface Knowledge {
   version?: number
   lang?: string
@@ -79,8 +84,14 @@ export interface Knowledge {
 export type SelType = 'region' | 'lobe' | 'vessel'
 export interface Sel { type: SelType; id: string }
 
-export type LayerId = 'hemi_L' | 'hemi_R' | 'cerebellum' | 'brainstem' | 'deep' | 'ventricle' | 'vessels' | 'neck' | 'bone' | 'skin'
-export const LAYER_ORDER: LayerId[] = ['hemi_L', 'hemi_R', 'cerebellum', 'brainstem', 'deep', 'ventricle', 'vessels', 'neck', 'bone', 'skin']
+/** UI layer toggles. Render groups map 1:1 except `vessel` → `vessels` and `body` → `skin` (vocab.layerOf). */
+export type LayerId =
+  | 'hemi_L' | 'hemi_R' | 'cerebellum' | 'brainstem' | 'deep' | 'ventricle'
+  | 'organ' | 'airway' | 'spine' | 'muscle' | 'vessels' | 'neck' | 'bone' | 'skin'
+export const LAYER_ORDER: LayerId[] = [
+  'hemi_L', 'hemi_R', 'cerebellum', 'brainstem', 'deep', 'ventricle',
+  'organ', 'airway', 'spine', 'muscle', 'vessels', 'neck', 'bone', 'skin',
+]
 
 export type Mode = 'mine' | 'learn'
 /** 'anatomy' | 'lobes' | 'natural' | `data:<measurement key>` */

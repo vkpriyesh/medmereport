@@ -1,6 +1,7 @@
 import type { Namer } from '../viewer3d/kb'
 import type { ViewerStore } from '../viewer3d/store.svelte'
-import type { Knowledge, Measurement, ModelStatus, RegionInfo, RegionsJson, Sel, StatsJson } from '../viewer3d/types'
+import type { StudyInfo } from '../api/endpoints'
+import type { Framing, Knowledge, Measurement, ModelStatus, RegionInfo, RegionsJson, Sel, StatsJson } from '../viewer3d/types'
 
 /** Everything a card needs, built once by the 3D route. */
 export interface CardCtx {
@@ -23,4 +24,9 @@ export interface CardCtx {
     showVessels: () => void
   }
   tourLen: number
+  /** Model framing (§6) and a translator that prefers the framing's wording (`key.body`). */
+  framing: Framing
+  ft: (key: string, vars?: Record<string, string | number>) => string
+  /** The study (for 2D-viewer links); null while loading or if it failed. */
+  study: StudyInfo | null
 }

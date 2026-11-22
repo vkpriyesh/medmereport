@@ -1,6 +1,6 @@
 // Knowledge-base helpers: per-language merge with English fallback, display names.
-import { humanize, splitKey } from './names'
-import type { Knowledge } from './types'
+import { humanize, ribNumber, splitKey, vertebraLevel } from './names'
+import type { Framing, Knowledge } from './types'
 import { lobeOf as vocabLobe } from './vocab'
 
 type AnyRec = Record<string, unknown>
@@ -50,7 +50,16 @@ export const structureLobe = (kb: Knowledge, structure: string) => kb.structures
 export function structureName(n: Namer, structure: string): string {
   const nm = n.kb.structures[structure]?.name
   if (localized(n, nm, n.en?.structures?.[structure]?.name)) return nm!
-  return n.tr(`struct.${structure}`) ?? nm ?? humanize(structure)
+  return n.tr(`struct.${structure}`) ?? nm ?? patterned(n, structure) ?? humanize(structure)
+}
+
+/** Names for numbered series (vertebrae_l1 → "L1 vertebra", rib_3 → "Rib 3") without one dictionary key each. */
+function patterned(n: Namer, structure: string): string | null {
+  const lv = vertebraLevel(structure)
+  if (lv) return n.tr('struct.vertebra', { level: lv }) ?? `${lv} vertebra`
+  const rib = ribNumber(structure)
+  if (rib !== null) return n.tr('struct.rib', { n: rib }) ?? `Rib ${rib}`
+  return null
 }
 
 export function lobeName(n: Namer, lobe: string): string {
@@ -72,4 +81,11 @@ export function regionName(n: Namer, key: string): string {
 export function searchText(kb: Knowledge, structure: string, displayName: string): string {
   const s = kb.structures[structure]
   return [displayName, s?.name, ...(s?.aka ?? []), structure.replace(/_/g, ' ')].filter(Boolean).join(' ').toLowerCase()
+}
+
+/** Which vessel tree a `V|<name>` key is: neck arteries, body vessels (CT/CTA, or any vessel in a torso model) or brain arteries. */
+export function vesselKind(key: string, framing: Framing = 'head'): 'neck' | 'body' | 'brain' {
+  if (/neck/i.test(key)) return 'neck'
+  if (/body|aorta|cta/i.test(key) || framing !== 'head') return 'body'
+  return 'brain'
 }

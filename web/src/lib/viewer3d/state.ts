@@ -1,4 +1,5 @@
 // Explorer state + a pure reducer (unit-tested). The Svelte store (store.svelte.ts) only wraps this.
+import { DEFAULT_SHOW as FRAMING_SHOW, XRAY_REVEAL } from './framing'
 import type { Axis, ColorBy, LayerId, Mode, PickBy, Sel, ViewPreset } from './types'
 
 export interface QuizState { target: string; score: number; n: number; tries: number; last: { ok: boolean; picked: string | null } | null; revealing: boolean }
@@ -11,6 +12,8 @@ export interface ViewerState {
   hover: Sel | null
   /** Layer visibility; only layers present in the model are listed. */
   show: Partial<Record<LayerId, boolean>>
+  /** Visibility restored by reset (regions.json `layers[].default`, else framing defaults). */
+  defaults: Partial<Record<LayerId, boolean>>
   xray: boolean
   isolate: boolean
   explode: number
@@ -21,15 +24,14 @@ export interface ViewerState {
   quiz: QuizState | null
 }
 
-export const DEFAULT_SHOW: Record<LayerId, boolean> = {
-  hemi_L: true, hemi_R: true, cerebellum: true, brainstem: true, deep: true, ventricle: true,
-  vessels: false, neck: false, bone: false, skin: false,
-}
+/** Brain (head framing) defaults — the M2 behaviour. */
+export const DEFAULT_SHOW: Record<LayerId, boolean> = FRAMING_SHOW.head
 
-export function initialState(layers: LayerId[]): ViewerState {
+export function initialState(layers: LayerId[], defaults?: Partial<Record<LayerId, boolean>>): ViewerState {
+  const d = Object.fromEntries(layers.map((l) => [l, defaults?.[l] ?? DEFAULT_SHOW[l] ?? true])) as Partial<Record<LayerId, boolean>>
   return {
     mode: 'mine', colorBy: 'anatomy', pickBy: 'structure', sel: null, hover: null,
-    show: Object.fromEntries(layers.map((l) => [l, DEFAULT_SHOW[l]])),
+    show: { ...d }, defaults: d,
     xray: false, isolate: false, explode: 0, cut: 1, cutAxis: 'y', rotate: false, tour: null, quiz: null,
   }
 }
@@ -115,7 +117,7 @@ export function reduce(s: ViewerState, a: Action, facts: ModelFacts): ViewerStat
       const on = a.on ?? !s.xray
       const show = { ...s.show }
       // X-ray reveals what is inside
-      if (on) for (const l of ['deep', 'ventricle', 'vessels'] as LayerId[]) if (has(s, l)) show[l] = true
+      if (on) for (const l of XRAY_REVEAL) if (has(s, l)) show[l] = true
       return { ...s, xray: on, show }
     }
     case 'isolate': {
@@ -134,7 +136,7 @@ export function reduce(s: ViewerState, a: Action, facts: ModelFacts): ViewerStat
       if (a.view === 'inside' && has(s, 'hemi_R')) return { ...s, show: { ...s.show, hemi_R: false } }
       return s
     case 'reset': {
-      const show = Object.fromEntries(Object.keys(s.show).map((l) => [l, DEFAULT_SHOW[l as LayerId]]))
+      const show = Object.fromEntries(Object.keys(s.show).map((l) => [l, s.defaults[l as LayerId] ?? DEFAULT_SHOW[l as LayerId] ?? true]))
       return { ...s, sel: null, hover: null, show, xray: false, isolate: false, explode: 0, cut: 1, rotate: false, tour: null, quiz: null }
     }
     case 'tour': {

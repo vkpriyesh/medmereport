@@ -55,3 +55,22 @@ export function formatStudyDate(s: string, lang = 'en'): string {
   if (isNaN(d.getTime())) return s
   return d.toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 }
+
+/**
+ * Series the 2D viewer should open first: the model's `primary_series` (§6; spine models name their sagittal series),
+ * else — for a study that is mostly spine — the first primary sagittal series, else the first series. Null if empty.
+ */
+export function primarySeriesId(
+  series: SeriesInfo[],
+  primary?: string | null,
+  regionOf: (s: SeriesInfo) => string = (s) => s.body_part,
+): string | null {
+  if (!series.length) return null
+  if (primary && series.some((s) => s.id === primary)) return primary
+  const spine = series.filter((s) => regionKey(regionOf(s)) === 'spine').length
+  if (spine * 2 > series.length) {
+    const sag = series.find((s) => regionKey(regionOf(s)) === 'spine' && s.plane === 'sagittal' && s.role === 'primary')
+    if (sag) return sag.id
+  }
+  return series[0].id
+}

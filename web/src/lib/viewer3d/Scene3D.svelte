@@ -2,7 +2,11 @@
   Scene3D — three.js renderer for model/scene.glb (API_CONTRACT §5).
   Appearance, picking, explode, clipping, fly-to and the pin label live here; all UI state lives in the ViewerStore.
   Performance: renders on demand (camera change, state change, animation), one material per region key,
-  shared clipping-plane array, raycasts at most once per frame and only after the pointer moved, no per-frame allocations.
+  shared clipping-plane array, raycasts at most once per frame (rAF) and only after the pointer moved, no per-frame
+  allocations. Hover/click raycasts use a per-mesh BVH (three-mesh-bvh), built in idle time after load; meshes without
+  one yet fall back to three's brute-force raycast.
+  Framing (§6): `head` keeps the M2 brain camera; `body` (tall torso, front view) and `spine` (lateral view) fit the
+  camera to the model's bounding box, so the same code works at brain (~150 mm) and body (hundreds of mm) scale.
 -->
 <script lang="ts">
   import { onMount } from 'svelte'
@@ -10,19 +14,23 @@
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
   import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
   import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
+  import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from 'three-mesh-bvh'
   import { dataColor, type DataMap } from './datamap'
   import { explodeOffset } from './explode'
+  import { XRAY_GHOST } from './framing'
   import { parseNodeName, type NodeKind } from './names'
-  import { LOBE_COLORS, NATURAL, NATURAL_DEEP, FALLBACK } from './palette'
+  import { LOBE_COLORS, NATURAL, NATURAL_BY_LOBE, NATURAL_DEEP, FALLBACK } from './palette'
   import type { ModelFacts } from './state'
   import type { ViewerStore } from './store.svelte'
-  import type { LayerId, RegionsJson, Sel, ViewPreset } from './types'
-  import { isInner, layerOf, lobeOf as vocabLobe } from './vocab'
+  import type { Framing, LayerId, RegionsJson, Sel, ViewPreset } from './types'
+  import { inVocab, isInner, layerOf, lobeOf as vocabLobe } from './vocab'
 
   interface Props {
     url: string
     store: ViewerStore
     regions: RegionsJson | null
+    /** Camera framing (framing.ts `framingOf`); fixed for the lifetime of the component. */
+    framing?: Framing
     /** structure id → lobe id (knowledge base first, vocab fallback). */
     lobeOf: (structure: string) => string
     dataMaps: DataMap[]
@@ -33,7 +41,9 @@
     onerror?: (msg: string) => void
     onloaded?: (info: { triangles: number; meshes: number }) => void
   }
-  let { url, store, regions, lobeOf, dataMaps, label, ariaLabel, onprogress, onerror, onloaded }: Props = $props()
+  let { url, store, regions, framing = 'head', lobeOf, dataMaps, label, ariaLabel, onprogress, onerror, onloaded }: Props = $props()
+  // svelte-ignore state_referenced_locally
+  const head = framing === 'head'
 
   let host: HTMLDivElement
   let tipEl: HTMLDivElement
@@ -52,10 +62,14 @@
   let envTex: THREE.Texture | null = null
   let glow: THREE.Mesh | null = null
   let root: THREE.Object3D | null = null
-  const clipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e4)
+  /** Plane constant meaning "no cut" — far beyond any body-scale model. */
+  const NO_CUT = 1e6
+  const clipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), NO_CUT)
   const clipping = [clipPlane]
   const size = new THREE.Vector3(1, 1, 1)
   let R = 100 // bounding radius (mm)
+  /** Explode offsets scale: 1 for a brain, larger for a torso/spine. */
+  let explodeScale = 1
   let dirty = true
   let disposed = false
 
@@ -81,6 +95,7 @@
   const hits: THREE.Intersection[] = []
   const anchorTmp = new THREE.Vector3()
   const colNatural = new THREE.Color(NATURAL), colNaturalDeep = new THREE.Color(NATURAL_DEEP)
+  const naturalBy = new Map(Object.entries(NATURAL_BY_LOBE).map(([k, v]) => [k, new THREE.Color(v)]))
   const lobeCol = new Map<string, THREE.Color>()
   const lobeColor = (l: string) => { let c = lobeCol.get(l); if (!c) lobeCol.set(l, (c = new THREE.Color(LOBE_COLORS[l] ?? FALLBACK))); return c }
 
@@ -110,21 +125,63 @@
   const VIEWS: Record<Exclude<ViewPreset, 'inside'>, [number, number, number]> = {
     left: [1, 0.12, 0], right: [-1, 0.12, 0], front: [0, 0.1, 1], back: [0, 0.15, -1], top: [0, 1, 0.001], below: [0, -1, 0.001],
   }
+  /** Home directions for the non-head framings: torso from the front (slightly oblique), spine from the left side. */
+  const HOME_DIR: Record<Framing, [number, number, number]> = { head: [0.75, 0.25, 0.6], body: [0.22, 0.1, 1], spine: [1, 0.06, 0.1] }
   /** Back off on tall/narrow viewports so the whole model fits horizontally. */
   const fit = () => Math.max(1, 1.25 / (camera?.aspect || 1))
-  export function view(v: ViewPreset) {
-    if (v === 'inside') flyTo(new THREE.Vector3(), new THREE.Vector3(-1, 0.1, 0), R * 4.4)
-    else flyTo(new THREE.Vector3(), new THREE.Vector3(...VIEWS[v]), R * 3.4)
+  const fitBasis = { r: new THREE.Vector3(), u: new THREE.Vector3(), d: new THREE.Vector3(), p: new THREE.Vector3() }
+  /**
+   * Camera distance that fits the model's box (centred at the origin) seen along `dir`, for the current FOV and aspect.
+   * Used by body/spine framings (tall models): a bounding-sphere fit would leave a torso tiny in a wide viewport.
+   */
+  function fitDistance(dir: THREE.Vector3, box: THREE.Vector3 = size, margin = 1.12): number {
+    const { r, u, d, p } = fitBasis
+    d.copy(dir).normalize()
+    u.set(0, 1, 0)
+    if (Math.abs(d.dot(u)) > 0.98) u.set(0, 0, -1)
+    r.crossVectors(u, d).normalize()
+    u.crossVectors(d, r).normalize()
+    let hx = 0, hy = 0, hz = 0
+    for (let i = 0; i < 8; i++) {
+      p.set((i & 1 ? 0.5 : -0.5) * box.x, (i & 2 ? 0.5 : -0.5) * box.y, (i & 4 ? 0.5 : -0.5) * box.z)
+      hx = Math.max(hx, Math.abs(p.dot(r))); hy = Math.max(hy, Math.abs(p.dot(u))); hz = Math.max(hz, Math.abs(p.dot(d)))
+    }
+    const tv = Math.tan(THREE.MathUtils.degToRad((camera?.fov ?? 32) / 2)), aspect = camera?.aspect || 1
+    return Math.max(hy / tv, hx / (tv * aspect)) * margin + hz
   }
-  export function home() { flyTo(new THREE.Vector3(), new THREE.Vector3(0.75, 0.25, 0.6), R * 3.4) }
+  export function view(v: ViewPreset) {
+    if (v === 'inside') {
+      if (head) flyTo(new THREE.Vector3(), new THREE.Vector3(-1, 0.1, 0), R * 4.4)
+      return
+    }
+    const dir = new THREE.Vector3(...VIEWS[v])
+    if (head) flyTo(new THREE.Vector3(), dir, R * 3.4)
+    else flyTo(new THREE.Vector3(), dir, fitDistance(dir), true)
+  }
+  export function home() {
+    const dir = new THREE.Vector3(...HOME_DIR[framing])
+    if (head) flyTo(new THREE.Vector3(), dir, R * 3.4)
+    else flyTo(new THREE.Vector3(), dir, fitDistance(dir), true)
+  }
   /** Fly to a selection (or home when null). `dir` overrides the viewing direction. */
   export function flyToSel(x: Sel | null, dir?: [number, number, number]) {
     if (!x) return home()
+    if (!head) return flyToSelBody(x, dir)
     const c = centerOf(x)
     if (!c) return
     const d = dir ? new THREE.Vector3(...dir) : c.clone().sub(new THREE.Vector3(0, c.y * 0.2, 0))
     if (d.length() < R * 0.15) d.set(0.3, 0.4, 1)
     flyTo(c.multiplyScalar(dir ? 0.3 : 0.35), d.normalize(), R * 3.7)
+  }
+  /** Body/spine: frame the selection itself (a kidney is small next to a torso), viewed from the framing's side. */
+  function flyToSelBody(x: Sel, dir?: [number, number, number]) {
+    const b = boxOf(x)
+    if (!b) return
+    const c = b.getCenter(new THREE.Vector3()), sz = b.getSize(new THREE.Vector3())
+    const d = new THREE.Vector3(...(dir ?? HOME_DIR[framing]))
+    if (!dir && framing === 'body') d.x += Math.sign(c.x) * 0.35 // lean towards the structure's side
+    const dist = Math.min(fitDistance(d, size), Math.max(fitDistance(d, sz, 1.9), R * 0.35))
+    flyTo(c, d.normalize(), dist, true)
   }
   export function screenshot(name = 'medmereport-3d.png') {
     if (!renderer) return
@@ -137,7 +194,7 @@
 
   // ---------------- appearance ----------------
   function baseColor(e: Entry, out: THREE.Color) {
-    if (colorBy === 'natural') return out.copy(e.inner ? colNaturalDeep : colNatural)
+    if (colorBy === 'natural') return out.copy(naturalBy.get(e.lobe) ?? (e.inner ? colNaturalDeep : colNatural))
     if (colorBy === 'lobes') return out.copy(lobeColor(e.lobe))
     if (dataMap) { const c = dataColor(dataMap, e.key); return out.setRGB(c[0] / 255, c[1] / 255, c[2] / 255, THREE.SRGBColorSpace) }
     const c = store.colors[e.structure]
@@ -156,7 +213,7 @@
       m.color.copy(tmpC)
       m.emissive.set(on ? 0x0f766e : hv ? 0x334155 : 0x000000)
       m.emissiveIntensity = on ? 0.55 : hv ? 0.6 : 0
-      const ghost = (xray && !e.inner && !on) || (isolate && anySel && !on)
+      const ghost = (xray && (!e.inner || XRAY_GHOST.has(e.layer)) && !on) || (isolate && anySel && !on)
       if (m.transparent !== ghost) { m.transparent = ghost; m.needsUpdate = true }
       m.opacity = ghost ? (isolate && anySel ? 0.06 : 0.13) : 1
       m.depthWrite = !ghost
@@ -170,6 +227,14 @@
     for (const x of extras) {
       const vis = !!show[x.layer]
       if (x.kind === 'vessel') x.mat.emissive.set(sel?.type === 'vessel' && sel.id === x.key ? 0x7f1d1d : 0x3b0010)
+      if (x.kind === 'bone' && !head) {
+        // body/spine: the skeleton hides the organs, so X-ray / isolate make it see-through too
+        const ghost = xray || (isolate && anySel)
+        if (x.mat.transparent !== ghost) { x.mat.transparent = ghost; x.mat.needsUpdate = true }
+        x.mat.opacity = ghost ? 0.13 : 1
+        x.mat.depthWrite = !ghost
+        for (const mesh of x.meshes) mesh.renderOrder = ghost ? 5 : 0
+      }
       for (const mesh of x.meshes) {
         mesh.visible = vis
         if (vis && x.kind === 'vessel') pickables.push(mesh)
@@ -181,7 +246,7 @@
   function applyExplode() {
     if (!loaded) return
     for (const e of entryList) {
-      explodeOffset(e.center, ZERO, e.hemi, e.layer, explode, tmpO)
+      explodeOffset(e.center, ZERO, e.hemi, e.layer, explode, tmpO, explodeScale)
       for (const mesh of e.meshes) mesh.position.copy(restPos.get(mesh)!).add(tmpV.set(tmpO.x, tmpO.y, tmpO.z))
     }
     dirty = true
@@ -191,18 +256,19 @@
     if (!loaded) return
     const half = { x: size.x, y: size.y, z: size.z }[cutAxis] * 0.52
     clipPlane.normal.set(cutAxis === 'x' ? -1 : 0, cutAxis === 'y' ? -1 : 0, cutAxis === 'z' ? -1 : 0)
-    clipPlane.constant = cut >= 0.999 ? 1e4 : -half + 2 * half * cut
+    clipPlane.constant = cut >= 0.999 ? NO_CUT : -half + 2 * half * cut
     dirty = true
   }
 
   // ---------------- camera animation ----------------
   let anim: { t0: THREE.Vector3; p0: THREE.Vector3; t1: THREE.Vector3; p1: THREE.Vector3; start: number; dur: number } | null = null
   const animA = new THREE.Vector3(), animB = new THREE.Vector3()
-  function flyTo(target: THREE.Vector3, dir: THREE.Vector3 | null, dist: number | null) {
+  /** `exact`: `dist` already accounts for the viewport (fitDistance); otherwise it is scaled by `fit()` (brain). */
+  function flyTo(target: THREE.Vector3, dir: THREE.Vector3 | null, dist: number | null, exact = false) {
     if (!camera) return
     const t0 = controls.target.clone(), p0 = camera.position.clone()
     const d = dir ? dir.clone().normalize() : p0.clone().sub(t0).normalize()
-    const D = dist !== null ? dist * fit() : p0.distanceTo(t0)
+    const D = dist !== null ? (exact ? dist : dist * fit()) : p0.distanceTo(t0)
     const p1 = target.clone().add(d.multiplyScalar(D))
     if (reduced) { controls.target.copy(target); camera.position.copy(p1); anim = null; dirty = true; return }
     anim = { t0, p0, t1: target.clone(), p1, start: performance.now(), dur: 900 }
@@ -220,12 +286,13 @@
     if (k >= 1) anim = null
   }
 
-  function centerOf(x: Sel): THREE.Vector3 | null {
+  function boxOf(x: Sel): THREE.Box3 | null {
     const b = new THREE.Box3()
     if (x.type === 'vessel') extras.forEach((e) => { if (e.key === x.id) e.meshes.forEach((m) => b.expandByObject(m)) })
     else for (const e of entryList) if (isSel(e, x)) e.meshes.forEach((m) => b.expandByObject(m))
-    return b.isEmpty() ? null : b.getCenter(new THREE.Vector3())
+    return b.isEmpty() ? null : b
   }
+  const centerOf = (x: Sel): THREE.Vector3 | null => boxOf(x)?.getCenter(new THREE.Vector3()) ?? null
 
   // ---------------- picking ----------------
   let ptrX = 0, ptrY = 0, ptrIn = false, ptrMoved = false, dragging = false
@@ -237,8 +304,10 @@
     ptr.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1)
     ray.setFromCamera(ptr, camera)
     hits.length = 0
+    const noClip = clipPlane.constant >= NO_CUT
+    // nearest hit per mesh is enough unless a cut may hide it (then farther hits on the same mesh matter)
+    ray.firstHitOnly = noClip
     ray.intersectObjects(pickables, false, hits)
-    const noClip = clipPlane.constant > 1e3
     for (const h of hits) if (noClip || clipPlane.distanceToPoint(h.point) >= -0.5) return h.object
     return null
   }
@@ -365,6 +434,9 @@
 
   function setupModel(gltfScene: THREE.Object3D) {
     const regionInfo = new Map((regions?.regions ?? []).map((r) => [r.key, r]))
+    const knownStructs = new Set((regions?.regions ?? []).map((r) => r.structure))
+    const known = (st: string) => knownStructs.has(st) || inVocab(st)
+    const fallbackLayer: LayerId | undefined = head ? undefined : 'organ'
     root = gltfScene
     scene.add(root)
     const vesselMat = () => new THREE.MeshPhysicalMaterial({ color: '#e11d48', roughness: 0.32, clearcoat: 0.8, clearcoatRoughness: 0.2, emissive: '#3b0010', clippingPlanes: clipping, side: THREE.DoubleSide })
@@ -379,7 +451,7 @@
       const mesh = o as THREE.Mesh
       let p: THREE.Object3D | null = mesh
       let info: NodeKind | null = null
-      while (p && !(info = parseNodeName(p.name))) p = p.parent
+      while (p && !(info = parseNodeName(p.name, known))) p = p.parent
       const g = mesh.geometry
       if (!g.attributes.normal) g.computeVertexNormals()
       triangles += (g.index ? g.index.count : g.attributes.position.count) / 3
@@ -405,7 +477,7 @@
         const lobe = lobeOf(info.structure) || vocabLobe(info.structure)
         e = {
           key: info.key, hemi: info.hemi, structure: info.structure, lobe,
-          layer: layerOf(info.structure, info.hemi, ri?.group), inner: ri?.inner ?? isInner(info.structure),
+          layer: layerOf(info.structure, info.hemi, ri?.group, fallbackLayer), inner: ri?.inner ?? isInner(info.structure),
           mat: makeRegionMat(), meshes: [], center: new THREE.Vector3(), anchor: new THREE.Vector3(),
         }
         entries.set(info.key, e); entryList.push(e)
@@ -447,17 +519,42 @@
     for (const x of extras) x.meshes.forEach((m) => restPos.set(m, m.position.clone()))
 
     // camera + floor glow scaled to the model
+    explodeScale = head ? 1 : Math.max(1, R / 125)
     camera.near = Math.max(0.5, R / 100); camera.far = R * 40; camera.updateProjectionMatrix()
-    controls.minDistance = R * 0.7; controls.maxDistance = R * 11
-    if (glow) { glow.scale.setScalar(R / 125); glow.position.y = -size.y / 2 - R * 0.24 }
+    controls.minDistance = head ? R * 0.7 : R * 0.12; controls.maxDistance = R * 11
+    if (glow) { glow.scale.setScalar(R / 125); glow.position.y = -size.y / 2 - R * (head ? 0.24 : 0.06) }
     camera.position.set(R * 3.4 * 0.72, R * 1.3, R * 2.6)
     controls.target.set(0, 0, 0)
     controls.update()
 
-    store.init(facts, [...extraBy.values()].map((x) => x.layer))
+    store.init(facts, [...extraBy.values()].map((x) => x.layer), { framing, regions })
     loaded = true
     home()
     onloaded?.({ triangles: Math.round(triangles), meshes: meshCount })
+    scheduleBvh()
+  }
+
+  // ---------------- raycast acceleration (T2.14) ----------------
+  /** Meshes smaller than this are raycast brute force (a BVH would not pay for itself). */
+  const BVH_MIN_TRIS = 2000
+  let bvhTimer = 0
+  /** Build one BVH per pickable mesh in idle slices (largest first) so loading a 900k-triangle model never stalls. */
+  function scheduleBvh() {
+    const queue: THREE.Mesh[] = []
+    for (const e of entryList) for (const m of e.meshes) queue.push(m)
+    for (const x of extras) if (x.kind === 'vessel') for (const m of x.meshes) queue.push(m)
+    const tris = (m: THREE.Mesh) => (m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3
+    const todo = queue.filter((m) => tris(m) >= BVH_MIN_TRIS).sort((a, b) => tris(b) - tris(a))
+    for (const m of queue) m.raycast = acceleratedRaycast // falls back to brute force until boundsTree exists
+    const step = () => {
+      const t0 = performance.now()
+      while (todo.length && performance.now() - t0 < 12) {
+        const g = todo.shift()!.geometry
+        if (!g.boundsTree) computeBoundsTree.call(g, { maxLeafSize: 10 })
+      }
+      if (todo.length && !disposed) bvhTimer = window.setTimeout(step, 16)
+    }
+    bvhTimer = window.setTimeout(step, 50)
   }
 
   onMount(() => {
@@ -562,6 +659,7 @@
 
     return () => {
       disposed = true
+      clearTimeout(bvhTimer)
       ac.abort()
       ro.disconnect()
       cv.removeEventListener('pointermove', onpointermove)
@@ -575,7 +673,7 @@
       const mats = new Set<THREE.Material>()
       scene.traverse((o) => {
         const m = o as THREE.Mesh
-        if (m.isMesh) { m.geometry?.dispose(); (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => x && mats.add(x)) }
+        if (m.isMesh) { if (m.geometry?.boundsTree) disposeBoundsTree.call(m.geometry); m.geometry?.dispose(); (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => x && mats.add(x)) }
       })
       mats.forEach((m) => m.dispose())
       envTex?.dispose()

@@ -1,10 +1,10 @@
 <!-- Study dashboard: header + series cards grouped by body region. -->
 <script lang="ts">
-  import { getSeriesMeta, getStudy, type SeriesMeta, type StudyInfo } from '../lib/api/endpoints'
+  import { getRegions, getSeriesMeta, getStudy, type SeriesMeta, type StudyInfo } from '../lib/api/endpoints'
   import Icon from '../lib/components/Icon.svelte'
   import { t, i18n } from '../lib/i18n/index.svelte'
   import { link } from '../lib/router.svelte'
-  import { formatStudyDate, groupByRegion, seriesRegion } from '../lib/study'
+  import { formatStudyDate, groupByRegion, primarySeriesId, seriesRegion } from '../lib/study'
   import SeriesCard from './study/SeriesCard.svelte'
 
   let { params }: { params: Record<string, string> } = $props()
@@ -13,12 +13,15 @@
   let metas = $state<Record<string, SeriesMeta | null>>({})
   let ready = $state(false)
   let error = $state<string | null>(null)
+  /** `regions.json` `primary_series` of a built model (§6), if any. */
+  let modelPrimary = $state<string | null>(null)
 
   const studyId = $derived(params.id)
   $effect(() => {
     const id = studyId
     let dead = false
-    study = null; metas = {}; ready = false; error = null
+    study = null; metas = {}; ready = false; error = null; modelPrimary = null
+    getRegions(id).then((r) => { if (!dead) modelPrimary = r?.primary_series ?? null }).catch(() => {})
     getStudy(id).then(async (s) => {
       if (dead) return
       study = s
@@ -33,6 +36,8 @@
   const groups = $derived(study ? groupByRegion(study.series, (s) => seriesRegion(s, metas[s.id])) : [])
   const hasSagittal = $derived(!!study?.series.some((s) => (metas[s.id]?.plane ?? s.plane) === 'sagittal'))
   const sid = $derived(encodeURIComponent(params.id))
+  // spine studies open their sagittal series first
+  const firstSeries = $derived(study ? primarySeriesId(study.series, modelPrimary, (s) => seriesRegion(s, metas[s.id])) : null)
 </script>
 
 {#if error}
@@ -60,7 +65,7 @@
       </div>
       <div class="ctas">
         {#if hasSagittal}<a class="btn" href="/study/{sid}/sagittal" use:link><Icon name="side" size={16} />{t('study.sagittal')}</a>{/if}
-        {#if study.series.length}<a class="btn primary" href="/study/{sid}/view/{encodeURIComponent(study.series[0].id)}" use:link>{t('study.openViewer')}<Icon name="arrow" size={16} /></a>{/if}
+        {#if firstSeries}<a class="btn primary" href="/study/{sid}/view/{encodeURIComponent(firstSeries)}" use:link>{t('study.openViewer')}<Icon name="arrow" size={16} /></a>{/if}
         <a class="btn" href="/study/{sid}/3d" use:link title={t('study.3d.title')}><Icon name="cube" size={16} />{t('study.3d')}</a>
       </div>
     </div>

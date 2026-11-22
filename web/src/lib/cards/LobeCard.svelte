@@ -36,7 +36,7 @@
 <div class="ihead">
   <button type="button" class="btn x" aria-label={t('card.close')} title={t('card.close')} onclick={() => (tour ? ctx.act.tourEnd() : ctx.act.select(null))}><Icon name="close" size={16} /></button>
   <div class="kick">
-    <span class="chip"><span class="dot" style="background:{lobeColor(id)}"></span>{t('card.division')}</span>
+    <span class="chip"><span class="dot" style="background:{lobeColor(id)}"></span>{ctx.ft('card.division')}</span>
     <span class="chip">{t('card.nStructures', { n: members.length })}</span>
   </div>
   <h2>{lobeName(ctx.namer, id)}</h2>
@@ -58,7 +58,7 @@
   {#if l?.functions?.length}<h4>{t('card.functions')}</h4><ul class="dots">{#each l.functions as x}<li>{x}</li>{/each}</ul>{/if}
   {#if l?.clinical?.length}<h4>{t('card.clinical')}</h4><ul class="dots clin">{#each l.clinical as x}<li>{x}</li>{/each}</ul>{/if}
   {#if l?.fact}<div class="fact"><b>{t('card.fact')}</b>{l.fact}</div>{/if}
-  <h4>{t('card.inDivision')}</h4>
+  <h4>{ctx.ft('card.inDivision')}</h4>
   <div class="chips">
     {#each members as m (m)}
       {@const c = ctx.store.colors[m]}
