@@ -1,7 +1,8 @@
 <!--
   Call-to-action + live progress for building the 3D model (POST /api/studies/{id}/model → SSE).
   With `GET …/model/options` (contract §6) the user picks among the applicable pipelines (best match first) and, where
-  offered, the backend (classical vs TotalSegmentator, an optional install). Without that route: one "Build" button
+  offered, the backend (classical vs TotalSegmentator, an optional install): every backend the engine lists is shown, and
+  an unavailable one is disabled with the engine's `reason` (how to get it). Without that route: one "Build" button
   (`pipeline: auto`), the M2 behaviour.
 -->
 <script lang="ts">
@@ -44,10 +45,7 @@
   })
   const current = $derived<PipelineOption | undefined>(options?.pipelines.find((p) => p.pipeline === pipeline))
   const backends = $derived<BackendOption[]>(current?.backends ?? [])
-  const offersTotalseg = $derived(backends.some((b) => b.id === 'totalseg'))
   const noneFits = $derived(!!options && options.pipelines.length === 0)
-  // the engine lists only backends usable now: tell body-CT users the detailed AI method exists as an optional install
-  const totalsegHint = $derived(current?.pipeline === 'ct_body' && !offersTotalseg)
 
   function defaultBackend(p?: PipelineOption): string {
     const av = (p?.backends ?? []).filter((b) => b.available)
@@ -147,11 +145,8 @@
               {#if b.licence}<small class="faint">{b.licence}</small>{/if}</span>
           </label>
         {/each}
-        {#if offersTotalseg}<p class="note faint"><Icon name="info" size={13} />{t('m3d.build.totalsegNote')}</p>{/if}
       </fieldset>
     {/if}
-
-    {#if !noneFits && totalsegHint}<p class="note faint"><Icon name="info" size={13} />{t('m3d.build.totalsegNote')}</p>{/if}
 
     {#if error}<p class="err" role="alert">{error}</p>{/if}
     <button type="button" class="btn primary lg" onclick={build} disabled={optsLoading || noneFits}><Icon name="cube" size={17} />{error ? t('m3d.build.retry') : t('m3d.build.cta')}</button>
@@ -200,8 +195,6 @@
   .ot small { font-size: 12.5px; line-height: 1.4; }
   .chip.best { font-size: 10.5px; color: var(--accent); }
   .chip.warn { font-size: 10.5px; color: var(--warn); }
-  .note { display: flex; gap: 6px; align-items: flex-start; font-size: 12px; line-height: 1.45; margin-top: 2px; }
-  .note :global(svg) { flex: none; margin-top: 2px; }
   .none { display: grid; gap: 4px; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(251,191,36,.25); background: rgba(251,191,36,.06); font-size: 13.5px; }
   .one { font-size: 13.5px; }
 </style>
