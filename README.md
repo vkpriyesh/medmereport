@@ -42,7 +42,7 @@ curl -LsSf https://raw.githubusercontent.com/vkpriyesh/medmereport/v0.1.0/script
 
 Then start medmereport from the **medmereport** shortcut: Start menu or desktop on Windows, `~/Applications/medmereport.command` on macOS, your applications menu on Linux. A small terminal window opens (keep it open while you use the app) and your browser shows the app. You can also type `medmereport serve` in a new terminal.
 
-**Brain MRI needs a one-time model download (about 360 MB).** CT, spine and angiography need nothing extra. To download the brain models, open a new terminal and run `medmereport models pull atlas-ho` and then `medmereport models pull synthseg`, or install with them in one go:
+**Brain MRI needs a one-time model download (about 340 MB).** CT, spine and angiography need nothing extra. The app offers the download the first time you build a brain model (or from **Home → Manage models**); it shows what is downloaded and from where, and nothing about you is sent. To get them during install instead:
 - Windows: `$env:MEDMEREPORT_WITH_MODELS=1; irm https://raw.githubusercontent.com/vkpriyesh/medmereport/v0.1.0/scripts/install.ps1 | iex`
 - macOS / Linux: `curl -LsSf https://raw.githubusercontent.com/vkpriyesh/medmereport/v0.1.0/scripts/install.sh | sh -s -- --with-models`
 
@@ -65,7 +65,7 @@ To delete your data too without being asked: on Windows run `$env:MEDMEREPORT_PU
    ```bash
    uv tool install --python 3.12 "medmereport[ai] @ https://github.com/vkpriyesh/medmereport/releases/download/v0.1.0/medmereport-0.1.0-py3-none-any.whl"
    ```
-3. Optional brain models: `medmereport models pull atlas-ho` and `medmereport models pull synthseg`.
+3. Optional brain models: the app offers them on first use, or run `medmereport models pull atlas-ho` and `medmereport models pull synthseg`.
 4. Start it: `medmereport serve`.
 
 Remove it with `medmereport purge` (only if you want your studies erased) and then `uv tool uninstall medmereport`.
@@ -86,7 +86,7 @@ Imported studies are kept in medmereport's own data folder on your computer unti
 
 ## Privacy, in plain words
 - medmereport's server listens only on your own computer (`127.0.0.1`) and is protected by a one-time key.
-- It makes **no internet connections** while working. The only exception is the optional, one-time AI-model download you choose to run.
+- It makes **no internet connections** while working. The only exception is the brain-model download, which happens only when you click **Download**, only from the pinned GitHub/TemplateFlow addresses, and is checked against fixed checksums. Set `MEDMEREPORT_OFFLINE=1` to turn it off.
 - No analytics, no crash reporting, no accounts.
 - Turning on **full-disk encryption** (BitLocker / FileVault) is the best protection for any medical files on your laptop.
 
@@ -102,7 +102,7 @@ If you have **Ollama** installed, medmereport can explain regions in plain langu
 | "Wrong password" | Check the hospital slip; passwords are case-sensitive. |
 | "No scans found" | Make sure you selected the whole disc folder; run `medmereport doctor`. |
 | Slow processing | Close other apps; 3D building can take 3–8 minutes on older laptops. |
-| "The selected method is not installed on this computer" (brain MRI) | Download the brain models (see Install: `medmereport models pull atlas-ho` and `medmereport models pull synthseg`). |
+| "The selected method is not installed on this computer" (brain MRI) | Open **Home → Manage models** and download the brain models (or run `medmereport models pull atlas-ho` and `medmereport models pull synthseg`). |
 | `medmereport` not found after install | Close and reopen the terminal (the shortcut works either way), or run `uv tool update-shell`. |
 | The shortcut window closes or shows an error | Run `medmereport doctor` in a terminal and include its output in a GitHub issue. Re-running the install line repairs most problems. |
 | Page won't open | Run `medmereport serve` in a terminal and open the link it prints. |
