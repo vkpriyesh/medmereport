@@ -40,9 +40,13 @@ def test_options_list_applicable_pipelines(authed):
     body = r.json()
     opts = {o["pipeline"]: o for o in body["options"]}
     assert {"ct_body", "spine_mr"} <= set(opts) and "brain_mr" not in opts
-    assert opts["ct_body"]["backends"][0] == "classical"
-    assert "totalseg" not in opts["ct_body"]["backends"]  # optional extra not installed in the dev venv
-    assert opts["spine_mr"]["backends"] == ["classical"]
+    ct = {b["id"]: b for b in opts["ct_body"]["backends"]}
+    assert ct["classical"] == {"id": "classical", "available": True, "reason": None, "licence": None, "default": True}
+    # optional extra not installed in the dev venv: listed, but unavailable with a plain-language reason
+    assert ct["totalseg"]["available"] is False and ct["totalseg"]["default"] is False
+    assert "medmereport[totalseg]" in ct["totalseg"]["reason"]
+    assert "Apache-2.0" in ct["totalseg"]["licence"]
+    assert [b["id"] for b in opts["spine_mr"]["backends"]] == ["classical"]
     assert body["auto"] in ("ct_body", "spine_mr")
     assert [o["score"] for o in body["options"]] == sorted((o["score"] for o in body["options"]), reverse=True)
     assert authed.get("/api/studies/nope123/model/options").status_code == 404
@@ -70,3 +74,24 @@ def test_ct_model_job_via_http(authed, tmp_path):
     regions = authed.get(f"/api/studies/{sid}/files/model/regions.json").json()
     assert regions["pipeline"] == "ct_body" and regions["framing"] == "body"
     assert authed.get(f"/api/studies/{sid}/files/model/scene.glb").status_code == 200
+
+
+def test_backend_options_reasons_and_probe_failures():
+    from medmereport.server.routes_model import _backend_options, _backends
+
+    class Broken:
+        def backends(self):
+            raise RuntimeError("probe failed")
+
+    class Fake:
+        def backends(self):
+            return {"classical": True, "totalseg": False}
+
+        def backend_reasons(self):
+            return {"totalseg": "weights missing"}
+
+    assert [(o.id, o.available, o.default) for o in _backend_options(Broken())] == [("classical", True, True)]
+    opts = _backend_options(Fake())
+    assert opts[1].reason == "weights missing" and not opts[1].available
+    assert _backends(Fake()) == ["classical"]
+    assert _backend_options(object())[0].id == "classical"

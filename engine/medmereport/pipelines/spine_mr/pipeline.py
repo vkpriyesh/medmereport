@@ -120,6 +120,8 @@ class SpineMRPipeline:
         vox = sx * sy * sz
         base = [NOT_DIAGNOSIS, Caveat(text="Sagittal slices are thick; side-to-side size is coarse.")]
         regions: dict[str, list[Measurement]] = {}
+        summary: dict[str, Measurement] = {}
+        partial = Caveat(text="Only what is inside the image is measured; the scan may not cover the whole spine.")
         cord = labels == C.CORD
         if cord.any():
             zs = np.nonzero(cord.any(axis=(1, 2)))[0]
@@ -135,9 +137,17 @@ class SpineMRPipeline:
                             method="Median front-to-back extent of the cord across axial levels.",
                             caveats=[*base, Caveat(text="Not a clinical cord-compression measurement.")]),
             ]  # fmt: skip
+            summary["cord_length_mm"] = Measurement(
+                key="cord_length_mm", label="Spinal cord length in view", value=round(len(zs) * sz, 1), unit="mm",
+                method="Number of head-to-foot slices containing the dark cord x slice spacing.",
+                caveats=[*base, partial])  # fmt: skip
         canal = (labels == C.CSF) | cord
         if canal.any():
             zs = np.nonzero(canal.any(axis=(1, 2)))[0]
+            summary["canal_length_mm"] = Measurement(
+                key="canal_length_mm", label="Spinal canal length in view", value=round(len(zs) * sz, 1), unit="mm",
+                method="Number of head-to-foot slices containing the fluid-filled canal x slice spacing.",
+                caveats=[*base, partial])  # fmt: skip
             ap = [float(np.ptp(np.nonzero(canal[k].any(axis=1))[0]) + 1) * sy for k in zs]
             regions["M|spinal_csf"] = [
                 volume_measure("volume", "Fluid volume in view", int((labels == C.CSF).sum()), vox,
@@ -148,6 +158,16 @@ class SpineMRPipeline:
                             caveats=[*base, Caveat(text="Not a stenosis grading; the bony canal is not measured.",
                                                    severity="warn")]),
             ]  # fmt: skip
+        summary["discs_detected"] = Measurement(
+            key="discs_detected", label="Discs detected", value=float(len(seg.discs)), unit="",
+            method="Bright bands in the column's head-to-foot intensity profile (T2-bright discs).",
+            caveats=[*base, partial, Caveat(text="Dark (dehydrated) discs may be missed; levels are not named.",
+                                            severity="warn")])  # fmt: skip
+        summary["vertebral_bodies_detected"] = Measurement(
+            key="vertebral_bodies_detected", label="Vertebral bodies detected", value=float(len(seg.bodies)), unit="",
+            method="Column pieces between two detected discs (bodies cut by the image edge are not counted).",
+            caveats=[*base, partial, Caveat(text="Depends on disc detection; not a vertebra count of the whole spine.",
+                                            severity="warn")])  # fmt: skip
         if seg.discs:
             ms = [
                 Measurement(key="count_in_view", label="Discs detected", value=float(len(seg.discs)), unit="",
@@ -191,7 +211,7 @@ class SpineMRPipeline:
             backend="classical-spine@1",
             licence=LICENCE,
             caveats=caveats,
-            summary={},
+            summary=summary,
             regions=regions,
             label_series=[series.id],
             primary_series=series.id,

@@ -219,6 +219,20 @@ class TotalSegBackend:
         except Exception:  # noqa: BLE001
             return False
 
+    def unavailable_reason(self) -> str | None:
+        """Plain-language reason the backend cannot run right now (``None`` when it can). No network."""
+        try:
+            if not package_installed():
+                return (
+                    "Optional install: `uv tool install 'medmereport[totalseg]'` "
+                    "(torch from the CPU index), then `medmereport models pull totalseg-total-fast`."
+                )
+            if not weights_present(self.dataset_id):
+                return "Model weights missing: run `medmereport models pull totalseg-total-fast`."
+        except Exception:  # noqa: BLE001 - a probe must never raise
+            return "TotalSegmentator could not be checked on this computer."
+        return None
+
     def segment(self, reference: Volume, extra: list[Volume], progress: ProgressFn) -> LabelMap:
         check_task(self.task, self.fast)
         if not package_installed():

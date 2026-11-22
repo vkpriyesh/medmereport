@@ -1,12 +1,13 @@
 """3D model routes (docs/API_CONTRACT.md §5-§6).
 
 ``POST /api/studies/{id}/model {pipeline?, backend?}`` -> JobInfo; ``GET /api/studies/{id}/model/options``
-lists the pipelines that apply to the study (score > 0) with their available backends.
+lists the pipelines that apply to the study (score > 0) with every backend as
+``{id, available, reason, licence, default}``.
 """
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -21,10 +22,18 @@ class ModelIn(BaseModel):
     backend: Literal["auto", "classical", "totalseg"] = "auto"
 
 
+class BackendOption(BaseModel):
+    id: str
+    available: bool  # usable right now, with no network
+    reason: str | None = None  # why not (e.g. an optional install), shown in the backend picker
+    licence: str | None = None
+    default: bool = False  # what "auto" picks when it is available
+
+
 class PipelineOption(BaseModel):
     pipeline: str
     score: float
-    backends: list[str]  # usable right now (no network); "auto" is always accepted as well
+    backends: list[BackendOption]  # every backend the pipeline knows; "auto" is always accepted as well
 
 
 class ModelOptions(BaseModel):
@@ -32,15 +41,39 @@ class ModelOptions(BaseModel):
     options: list[PipelineOption]
 
 
-def _backends(pipeline: object) -> list[str]:
-    fn = getattr(pipeline, "backends", None)
+def _probe(pipeline: object, attr: str) -> dict[str, Any]:
+    fn = getattr(pipeline, attr, None)
     if fn is None:
-        return ["classical"]
+        return {}
     try:
-        avail: dict[str, bool] = fn()
+        out = fn()
     except Exception:  # noqa: BLE001 - an optional backend probe must not break the listing
-        return ["classical"]
-    return [name for name, ok in avail.items() if ok]
+        return {}
+    return dict(out) if isinstance(out, dict) else {}
+
+
+def _backend_options(pipeline: object) -> list[BackendOption]:
+    avail = _probe(pipeline, "backends") or {"classical": True}
+    reasons = _probe(pipeline, "backend_reasons")
+    licences = _probe(pipeline, "backend_licences")
+    opts = [
+        BackendOption(
+            id=name,
+            available=bool(ok),
+            reason=None if ok else str(reasons.get(name) or "Not available on this computer."),
+            licence=licences.get(name),
+        )
+        for name, ok in avail.items()
+    ]
+    first = next((o for o in opts if o.available), None)
+    if first is not None:
+        first.default = True
+    return opts
+
+
+def _backends(pipeline: object) -> list[str]:
+    """Backend ids usable right now."""
+    return [o.id for o in _backend_options(pipeline) if o.available]
 
 
 def make_router(jobs: JobManager, store: StudyStore) -> APIRouter:
@@ -58,7 +91,7 @@ def make_router(jobs: JobManager, store: StudyStore) -> APIRouter:
             p = get_pipeline(name)
             score = float(p.applies(study))
             if score > 0:
-                opts.append(PipelineOption(pipeline=name, score=round(score, 3), backends=_backends(p)))
+                opts.append(PipelineOption(pipeline=name, score=round(score, 3), backends=_backend_options(p)))
         opts.sort(key=lambda o: (-o.score, o.pipeline))
         return ModelOptions(auto=choose_pipeline(study), options=opts)
 

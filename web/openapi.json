@@ -679,6 +679,51 @@
     ],
     "title": "Arteries"
    },
+   "BackendOption": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "available": {
+      "type": "boolean",
+      "title": "Available"
+     },
+     "reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason"
+     },
+     "licence": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Licence"
+     },
+     "default": {
+      "type": "boolean",
+      "title": "Default",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "available"
+    ],
+    "title": "BackendOption"
+   },
    "Capabilities": {
     "properties": {
      "version": {
@@ -1197,7 +1242,7 @@
      },
      "backends": {
       "items": {
-       "type": "string"
+       "$ref": "#/components/schemas/BackendOption"
       },
       "type": "array",
       "title": "Backends"

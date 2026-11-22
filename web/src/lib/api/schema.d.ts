@@ -291,6 +291,22 @@ export interface components {
                 [key: string]: components["schemas"]["Vessel"];
             };
         };
+        /** BackendOption */
+        BackendOption: {
+            /** Id */
+            id: string;
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Licence */
+            licence?: string | null;
+            /**
+             * Default
+             * @default false
+             */
+            default: boolean;
+        };
         /** Capabilities */
         Capabilities: {
             /** Version */
@@ -512,7 +528,7 @@ export interface components {
             /** Score */
             score: number;
             /** Backends */
-            backends: string[];
+            backends: components["schemas"]["BackendOption"][];
         };
         /** ProgressEvent */
         ProgressEvent: {

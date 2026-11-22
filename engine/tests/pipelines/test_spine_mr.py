@@ -125,6 +125,13 @@ def test_pipeline_end_to_end(imported, phantom):
     assert all(m["method"] and m["caveats"] for r in stats["regions"].values() for m in r["measurements"])
     cord = {m["key"]: m for m in stats["regions"]["M|spinal_cord"]["measurements"]}
     assert 5.0 <= cord["ap_diameter_median"]["value"] <= 10.0
+    summ = stats["summary"]
+    assert set(summ) == {"cord_length_mm", "canal_length_mm", "discs_detected", "vertebral_bodies_detected"}
+    assert summ["discs_detected"]["value"] == phantom.n_discs
+    assert summ["vertebral_bodies_detected"]["value"] == phantom.n_bodies
+    assert summ["cord_length_mm"]["unit"] == "mm" and summ["cord_length_mm"]["value"] > 0
+    assert summ["cord_length_mm"]["value"] <= summ["canal_length_mm"]["value"]
+    assert all(m["method"] and m["caveats"] for m in summ.values())
     meta = json.loads((d / "series" / s.id / "meta.json").read_text())
     assert meta["labels"] is True and "M|spinal_cord" in meta["labelTable"].values()
 

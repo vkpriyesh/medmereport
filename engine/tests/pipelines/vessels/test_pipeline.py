@@ -76,6 +76,9 @@ def test_tof_study_end_to_end(tmp_path):
     assert {r["structure"] for r in regions["regions"]} >= {"cerebral_arteries", "neck_arteries", "skin"}
     skin = next(layer for layer in regions["layers"] if layer["id"] == "body")
     assert skin["default"] is False
+    # vessels-only model: neck arteries visible by default (UI layer "neck"); pipeline says it is not a brain
+    assert next(layer for layer in regions["layers"] if layer["id"] == "neck")["default"] is True
+    assert regions["pipeline"] == "vessels"
     for node in ("V__cow", "V__neck"):
         v = _vertices(scene, node)
         assert ph.skin_depth_mm(v).min() > 7.0  # no scalp/subcutaneous fat in the vessel mesh
@@ -92,6 +95,7 @@ def test_cta_study_end_to_end(tmp_path):
     nodes = _check_contract(scene, regions, stats, status)
     assert nodes == {"V__body"}
     assert regions["framing"] == "body"
+    assert all(layer["id"] != "neck" for layer in regions["layers"])
     assert regions["regions"][0]["structure"] == "body_arteries"
     v = _vertices(scene, "V__body")
     (sx, sy), sr = SPINE

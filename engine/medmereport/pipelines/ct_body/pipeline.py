@@ -121,6 +121,20 @@ class CTBodyPipeline:
         ts = self._totalseg if self._totalseg is not None else _totalseg_backend()
         return {"classical": True, "totalseg": bool(ts is not None and ts.available())}
 
+    def backend_reasons(self) -> dict[str, str]:
+        """Why an unavailable backend cannot be used (shown in the UI's backend picker)."""
+        ts = self._totalseg if self._totalseg is not None else _totalseg_backend()
+        if ts is None:
+            return {"totalseg": "TotalSegmentator is not available in this build."}
+        fn = getattr(ts, "unavailable_reason", None)
+        why = fn() if fn is not None else (None if ts.available() else "Not installed.")
+        return {"totalseg": why} if why else {}
+
+    def backend_licences(self) -> dict[str, str]:
+        from medmereport.segment.totalseg.licence import WEIGHTS_LICENCE
+
+        return {"totalseg": WEIGHTS_LICENCE}
+
     def run(self, ctx: JobLike, study_dir: Path, study: StudyInfo) -> dict[str, Any]:
         from medmereport.geometry.labels_surface import LabelBudget, SurfaceSpec, build_label_model
         from medmereport.pipelines.ct_body import classical as C

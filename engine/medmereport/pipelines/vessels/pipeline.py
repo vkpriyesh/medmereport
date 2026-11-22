@@ -137,6 +137,9 @@ class VesselsPipeline:
 
         caveats = [c.text for c in (*VESSEL_CAVEATS, *(TOF_CAVEATS if kind == "tof" else CTA_CAVEATS))]
         defaults = {"vessel": True, **{k: v for k, v in layers.defaults.items() if k != "vessel"}}
+        if "V|neck" in meshes:
+            # the neck arteries are half of a TOF vessels-only model: show them (the brain model keeps them hidden)
+            defaults = {"vessel": True, "neck": True, **{k: v for k, v in defaults.items() if k != "vessel"}}
         write_json(
             model_dir / "regions.json",
             {
