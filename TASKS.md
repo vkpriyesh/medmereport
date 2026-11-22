@@ -71,10 +71,10 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 ## M3 — CT, vessels, spine
 | ID | Task | Lane | Deps | Paths | Acceptance | Status | Owner |
 |---|---|---|---|---|---|---|---|
-| T3.1 | `ct_body` classical (skin/bone/lung/air via HU) | P | T2.1,T2.6 | `pipelines/ct_body/` | Public CT → 4 surfaces | todo | |
-| T3.2 | TotalSegmentator backend (open tasks only, `[ai]` extra, model pull, licence guard) | P | T3.1 | `segment/totalseg/` | Licensed tasks unreachable; `--fast` runs on CPU | todo | |
+| T3.1 | `ct_body` classical (skin/bone/lung/air via HU) | P | T2.1,T2.6 | `pipelines/ct_body/` | Public CT → 4 surfaces | doing | agent-CT |
+| T3.2 | TotalSegmentator backend (open tasks only, `[ai]` extra, model pull, licence guard) | P | T3.1 | `segment/totalseg/` | Licensed tasks unreachable; `--fast` runs on CPU | doing | agent-CT |
 | T3.3 | `vessels` pipeline (prototype top-hat + shape filters, CTA variant) | P | T2.1 | `pipelines/vessels/` | Public TOF → vessel mesh, no scalp fat | todo | |
-| T3.4 | `spine_mr` pipeline + sagittal-first layout | P | T2.1 | `pipelines/spine_mr/` | Cord/CSF/vertebra surfaces | todo | |
+| T3.4 | `spine_mr` pipeline + sagittal-first layout | P | T2.1 | `pipelines/spine_mr/` | Cord/CSF/vertebra surfaces | doing | agent-CT |
 | T3.5 | Knowledge base: body organs, bones, vessels, spine | K | T2.11 | `knowledge/` | Covers all TotalSegmentator open labels | todo | |
 
 ## M4 — X-ray
@@ -126,3 +126,4 @@ T8.1 Tauri v2 desktop app (engine sidecar) · T8.2 hosted web mode (OIDC, job qu
 2026-11-21 | claude | M2 | claim | contracts (LabelMap, artifact format, vocabulary) + T2.2 spatial helpers done; 5 lanes dispatched in parallel (P atlas+fusion, P2 SynthSeg ONNX, G surfaces/stats/thumbs/job, W 3D UI, K knowledge)
 2026-11-21 | agents P/P2/G/W/K + claude | T2.1–T2.11 | done | atlas backend (Dice 0.96 brain, ~0.95 deep grey, ~80 s), SynthSeg 2.0 ONNX (Dice>=0.999 vs TF untiled; adaptive RAM budget), fusion, carved surface + GLB, stats w/ caveats, thumbs, label maps, model job/route, 3D explorer + cards, KB en/hi (62 structures). Verified in Chrome: demo DICOM disc -> 3D model in 136 s with 102 regions. 302 engine + 81 web tests
 2026-11-21 | claude | T2.12 | blocked | publishing model weights to a public GitHub release is outward-facing; awaiting owner. Atlas backend is the default until then
+2026-11-22 | agent-CT | T3.1,T3.2,T3.4 | claim | ct_body classical + labels_surface builder, TotalSegmentator optional backend (licence guard), spine_mr
