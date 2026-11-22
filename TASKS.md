@@ -65,7 +65,7 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 | T2.11 | Anatomy knowledge base (generic, cited, i18n-ready JSON; brain first) | K | – | `engine/medmereport/knowledge/` | Schema-validated; reviewed against textbooks | done | agent-K |
 
 | T2.12 | Publish SynthSeg ONNX weights as GitHub release assets (`models-synthseg-2.0`) on vkpriyesh/medmereport so `models pull synthseg-*` works | D | T2.4 | release | Hashes match registry | blocked | needs owner approval to publish (outward-facing) |
-| T2.13 | Head/skin surface layer (`H__skin`) + TOF vessel pipeline hookup in brain model | G | T2.6,T3.3 | geometry/ | Layers toggle in UI | todo | |
+| T2.13 | Head/skin surface layer (`H__skin`) + TOF vessel pipeline hookup in brain model | G | T2.6,T3.3 | geometry/ | Layers toggle in UI | doing | agent-V |
 | T2.14 | Hover raycast acceleration (BVH) for ~900k-tri scenes; real-hardware fps check | W | T2.9 | web/src/lib/viewer3d | ≥45 fps on integrated GPU | doing | agent-W |
 
 ## M3 — CT, vessels, spine
@@ -73,7 +73,7 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 |---|---|---|---|---|---|---|---|
 | T3.1 | `ct_body` classical (skin/bone/lung/air via HU) | P | T2.1,T2.6 | `pipelines/ct_body/` | Public CT → 4 surfaces | doing | agent-CT |
 | T3.2 | TotalSegmentator backend (open tasks only, `[ai]` extra, model pull, licence guard) | P | T3.1 | `segment/totalseg/` | Licensed tasks unreachable; `--fast` runs on CPU | doing | agent-CT |
-| T3.3 | `vessels` pipeline (prototype top-hat + shape filters, CTA variant) | P | T2.1 | `pipelines/vessels/` | Public TOF → vessel mesh, no scalp fat | todo | |
+| T3.3 | `vessels` pipeline (prototype top-hat + shape filters, CTA variant) | P | T2.1 | `pipelines/vessels/` | Public TOF → vessel mesh, no scalp fat | doing | agent-V |
 | T3.4 | `spine_mr` pipeline + sagittal-first layout | P | T2.1 | `pipelines/spine_mr/` | Cord/CSF/vertebra surfaces | doing | agent-CT |
 | T3.5 | Knowledge base: body organs, bones, vessels, spine | K | T2.11 | `knowledge/` | Covers all TotalSegmentator open labels | doing | agent-K |
 | T3.6 | 3D UI generalisation for body/spine/vessels (layers from regions.json, framing presets, group palette, body-scale explode/clip, system-grouped tree, graceful cards) + model options/backend picker | W | T2.9,T2.10 | `web/src/lib/viewer3d/`, `web/src/routes/model3d/` | Brain unchanged; body + spine mocks render with correct framing | doing | agent-W |
@@ -131,3 +131,4 @@ T8.1 Tauri v2 desktop app (engine sidecar) · T8.2 hosted web mode (OIDC, job qu
 2026-11-22 | agent-CT | T3.1,T3.2,T3.4 | claim | ct_body classical + labels_surface builder, TotalSegmentator optional backend (licence guard), spine_mr
 2026-11-22 | agent-W | T1.15,T2.14,T3.6,T3.7 | claim | 3D UI generalisation (body/spine/vessels), model options UI, BVH hover, OpenAPI reconcile, body/spine mocks
 2026-11-22 | agent-K | T3.5 | claim | BODY vocab from TotalSegmentator open tasks + KB en/hi for CT/spine/body/vessels
+2026-11-22 | agent-V | T3.3, T2.13 | claim | vessels pipeline (TOF + CTA) in pipelines/vessels/, H__skin + TOF hookup in brain_mr; shared: small additive edit to pipelines/registry.py
