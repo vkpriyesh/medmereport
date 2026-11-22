@@ -131,3 +131,28 @@ def test_route_in_openapi(authed):
     spec = authed.get("/api/openapi.json").json()
     assert "/api/knowledge" in spec["paths"]
     assert "Knowledge" in spec["components"]["schemas"]
+
+
+BRAIN_CATEGORIES = {"cortex", "deep_grey", "ventricle", "white_matter", "cerebellum", "brainstem", "vessel"}
+
+
+@pytest.mark.parametrize("lang", LANGS)
+def test_body_entries_cover_every_totalseg_structure(lang):
+    from medmereport.knowledge import totalseg
+
+    kb = load_model(lang)
+    for task in totalseg.open_tasks():
+        for name in totalseg.task_classes(task).values():
+            mapped = totalseg.map_class(name)
+            if mapped is not None:
+                entry = kb.structures[mapped[0]]
+                assert entry.name and entry.tagline and entry.overview, (task, name)
+
+
+def test_body_entries_use_body_categories_and_real_names():
+    kb = load_model("en")
+    for sid in (*structures.BODY, *structures.CT_CLASSICAL, *structures.SPINE):
+        entry = kb.structures[sid]
+        assert entry.category not in BRAIN_CATEGORIES - {"ventricle", "vessel"}, sid
+        assert sid not in [a.lower() for a in entry.aka], sid
+        assert entry.brodmann == [], sid

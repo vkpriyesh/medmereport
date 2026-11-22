@@ -75,7 +75,7 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 | T3.2 | TotalSegmentator backend (open tasks only, `[ai]` extra, model pull, licence guard) | P | T3.1 | `segment/totalseg/` | Licensed tasks unreachable; `--fast` runs on CPU | doing | agent-CT |
 | T3.3 | `vessels` pipeline (prototype top-hat + shape filters, CTA variant) | P | T2.1 | `pipelines/vessels/` | Public TOF → vessel mesh, no scalp fat | doing | agent-V |
 | T3.4 | `spine_mr` pipeline + sagittal-first layout | P | T2.1 | `pipelines/spine_mr/` | Cord/CSF/vertebra surfaces | doing | agent-CT |
-| T3.5 | Knowledge base: body organs, bones, vessels, spine | K | T2.11 | `knowledge/` | Covers all TotalSegmentator open labels | doing | agent-K |
+| T3.5 | Knowledge base: body organs, bones, vessels, spine | K | T2.11 | `knowledge/` | Covers all TotalSegmentator open labels | done | agent-K |
 | T3.6 | 3D UI generalisation for body/spine/vessels (layers from regions.json, framing presets, group palette, body-scale explode/clip, system-grouped tree, graceful cards) + model options/backend picker | W | T2.9,T2.10 | `web/src/lib/viewer3d/`, `web/src/routes/model3d/` | Brain unchanged; body + spine mocks render with correct framing | doing | agent-W |
 | T3.7 | Mock mode: synthetic body (CT) and spine models | W | T3.6 | `web/scripts/` | `npm run dev:mock` lists brain, body and spine demo studies | doing | agent-W |
 
@@ -132,3 +132,4 @@ T8.1 Tauri v2 desktop app (engine sidecar) · T8.2 hosted web mode (OIDC, job qu
 2026-11-22 | agent-W | T1.15,T2.14,T3.6,T3.7 | claim | 3D UI generalisation (body/spine/vessels), model options UI, BVH hover, OpenAPI reconcile, body/spine mocks
 2026-11-22 | agent-K | T3.5 | claim | BODY vocab from TotalSegmentator open tasks + KB en/hi for CT/spine/body/vessels
 2026-11-22 | agent-V | T3.3, T2.13 | claim | vessels pipeline (TOF + CTA) in pipelines/vessels/, H__skin + TOF hookup in brain_mr; shared: small additive edit to pipelines/registry.py
+2026-11-22 | agent-K | T3.5 | done | BODY vocab = 224 ids from 31 open TotalSegmentator tasks (upstream 88060518, pkg 2.18.0; class list in knowledge/totalseg_classes.json + knowledge/totalseg.py); findings/devices excluded; +3 lobes (nervous, sensory, body_regions); +9 KB categories; KB en/hi 320 structures / 27 lobes (v2). Hindi needs clinician review; web needs cat.* i18n keys for new categories (W lane)

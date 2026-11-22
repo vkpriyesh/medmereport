@@ -9,7 +9,11 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-Category = Literal["cortex", "deep_grey", "ventricle", "white_matter", "cerebellum", "brainstem", "vessel"]
+Category = Literal[
+    "cortex", "deep_grey", "ventricle", "white_matter", "cerebellum", "brainstem", "vessel",
+    # body (M3, T3.5)
+    "organ", "bone", "cartilage", "muscle", "airway", "nerve", "tooth", "spine", "body",
+]  # fmt: skip
 
 TAGLINE_MAX = 90
 

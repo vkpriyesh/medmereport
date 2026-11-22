@@ -98,3 +98,10 @@ Fix:
 - Never `pip install` into the user's global Python; always isolated env.
 - nilearn's MNI "brain mask" is generous (~1,880 cm³) — never report it as brain volume; use tissue voxels.
 - Browser caching during dev → content-hashed asset filenames.
+
+## 5. TotalSegmentator open-task classes (T3.5, retrieved 2026-11-22)
+- Source: `totalsegmentator/map_to_binary.py` and `README.md` at commit `88060518cc3d556fbcf1894d05f1d1e65de52277` (2026-11-17, package 2.18.0) of github.com/wasserth/TotalSegmentator. Copied verbatim for the 31 Apache-2.0 tasks into `engine/medmereport/knowledge/totalseg_classes.json` (349 distinct class names; `total` = 117 classes incl. `kidney_cyst_left/right`, `costal_cartilages`).
+- Licensed/commercial tasks (README "Available with a license": heartchambers_highres, appendicular_bones, tissue_types, brain_structures, face, thigh_shoulder_muscles, coronary_arteries, aortic_sinuses, …) and `brain_aneurysm` (CC BY-NC) are not included.
+- Upstream also defines `class_map["total_v3"]` (label 26 = `vertebrae_L6`); not a listed task yet — if adopted, add `vertebrae_l6` to the vocabulary.
+- Findings/devices (cysts, nodules, tumours/lesions, bleeds, effusions, hip/dental implants, crowns, bridges) are kept in the JSON under `excluded` and are not vocabulary: anatomy tool, not diagnostic.
+- KB text is original, textbook-level; cited: OpenStax Anatomy and Physiology 2e (2022, CC BY 4.0), Gray's Anatomy 42e (2020), Moore's Clinically Oriented Anatomy 8e, and specialty texts for teeth/neuro.
