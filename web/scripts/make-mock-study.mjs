@@ -1,47 +1,20 @@
 #!/usr/bin/env node
 // Generates a SYNTHETIC phantom study for UI development (`npm run dev -- --mode mock`).
 // Everything is procedural (ellipsoid head, neck, spine, a toy vessel tree) — no real patient data.
-// Output: web/public/mock/{studies.json, studies/phantom/{study.json, files/series/<id>/{meta.json,000.png,…}}}
+// Output: web/public/mock/{studies.json, knowledge.json, studies/<id>/{study.json, options.json, files/{series,model}/…}}
+// for three studies: `phantom` (brain MR), `body-phantom` (CT torso, mock-body.mjs), `spine-phantom` (MR spine, mock-spine.mjs).
 // PNGs are written with a tiny encoder on top of node:zlib (8-bit grey, or RGB for label maps).
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { deflateSync } from 'node:zlib'
-import { LABEL_NAMES, LABEL_TABLE, buildModel, labelCodeLPS } from './mock-model.mjs'
+import { buildBodyStudy } from './mock-body.mjs'
 import { KNOWLEDGE } from './mock-knowledge.mjs'
+import { encodePng, writeJSON } from './mock-lib.mjs'
+import { LABEL_NAMES, LABEL_TABLE, buildModel, labelCodeLPS } from './mock-model.mjs'
+import { buildSpineStudy } from './mock-spine.mjs'
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'mock')
 const STUDY = 'phantom'
-
-// ---------------- PNG encoder ----------------
-const CRC = new Uint32Array(256).map((_, n) => {
-  let c = n
-  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
-  return c >>> 0
-})
-function crc32(buf) {
-  let c = 0xffffffff
-  for (const b of buf) c = CRC[(c ^ b) & 0xff] ^ (c >>> 8)
-  return (c ^ 0xffffffff) >>> 0
-}
-function chunk(type, data) {
-  const out = Buffer.alloc(12 + data.length)
-  out.writeUInt32BE(data.length, 0)
-  out.write(type, 4, 'ascii')
-  data.copy(out, 8)
-  out.writeUInt32BE(crc32(out.subarray(4, 8 + data.length)), 8 + data.length)
-  return out
-}
-/** @param {number} w @param {number} h @param {1|3} ch @param {Uint8Array} px */
-function encodePng(w, h, ch, px) {
-  const ihdr = Buffer.alloc(13)
-  ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4)
-  ihdr[8] = 8; ihdr[9] = ch === 1 ? 0 : 2; ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0
-  const stride = w * ch
-  const raw = Buffer.alloc((stride + 1) * h)
-  for (let y = 0; y < h; y++) { raw[y * (stride + 1)] = 0; Buffer.from(px.buffer, px.byteOffset + y * stride, stride).copy(raw, y * (stride + 1) + 1) }
-  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0))])
-}
 
 // ---------------- phantom ----------------
 const T = { BG: 0, FAT: 1, BONE: 2, CSF: 3, GM: 4, WM: 5, VENT: 6, MUSCLE: 7, MARROW: 8, DISC: 9 }
@@ -127,7 +100,6 @@ const SERIES = [
     pos: (t) => [-110, t, 110], along: range(20, -80, 80), thickness: 5 },
 ]
 
-function writeJSON(p, obj) { mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, JSON.stringify(obj, null, 1)) }
 
 rmSync(OUT, { recursive: true, force: true })
 const filesDir = join(OUT, 'studies', STUDY, 'files', 'series')
@@ -255,5 +227,11 @@ const study = {
   warnings: ['This is synthetic demo data generated for development.'],
 }
 writeJSON(join(OUT, 'studies', STUDY, 'study.json'), study)
-writeJSON(join(OUT, 'studies.json'), [{ id: STUDY, description: study.description, study_date: study.study_date, modalities: study.modalities, n_series: seriesInfo.length, adapter: study.adapter }])
+writeJSON(join(OUT, 'studies', STUDY, 'options.json'), { pipelines: [{ name: 'brain_mr', score: 0.95 }, { name: 'vessels', score: 0.4 }], recommended: 'brain_mr' })
+
+// ---- body + spine phantoms (M3) ----
+const body = buildBodyStudy(OUT)
+const spine = buildSpineStudy(OUT)
+const row = (s) => ({ id: s.id, description: s.description, study_date: s.study_date, modalities: s.modalities, n_series: s.series.length, adapter: s.adapter })
+writeJSON(join(OUT, 'studies.json'), [row(study), row(body), row(spine)])
 process.stdout.write(`\nWrote synthetic mock study to ${OUT}\n`)

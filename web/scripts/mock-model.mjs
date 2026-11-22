@@ -85,7 +85,7 @@ export function labelCodeLPS(x, y, z, kind) {
 
 // ---------------- geometry ----------------
 /** UV ellipsoid with poles on X. Returns {pos: number[], idx: number[]} */
-function ellipsoid(c, r, nu = 48, nv = 32, warp) {
+export function ellipsoid(c, r, nu = 48, nv = 32, warp) {
   const pos = [], idx = []
   for (let i = 0; i <= nv; i++) {
     const th = (i / nv) * Math.PI
@@ -140,7 +140,7 @@ function hemisphere(h) {
 }
 
 /** Tube along a polyline (viewer space). */
-function tube(pts, radius, segs = 10) {
+export function tube(pts, radius, segs = 10) {
   const pos = [], idx = []
   const sample = []
   for (let k = 0; k < pts.length - 1; k++) {
@@ -170,7 +170,7 @@ function tube(pts, radius, segs = 10) {
   })
   return { pos, idx }
 }
-function concat(parts) {
+export function concat(parts) {
   const pos = [], idx = []
   for (const p of parts) { const off = pos.length / 3; pos.push(...p.pos); for (const i of p.idx) idx.push(i + off) }
   return { pos, idx }
@@ -197,7 +197,7 @@ function vessels() {
 }
 
 // ---------------- GLB writer (positions + indices; no materials/normals per contract) ----------------
-function writeGlb(file, meshes) {
+export function writeGlb(file, meshes) {
   const json = { asset: { version: '2.0', generator: 'medmereport mock (synthetic phantom)' }, scene: 0, scenes: [{ nodes: [] }], nodes: [], meshes: [], accessors: [], bufferViews: [] }
   const chunks = []
   let off = 0
@@ -230,7 +230,7 @@ function writeGlb(file, meshes) {
 }
 
 // ---------------- stats helpers ----------------
-function areaCentroid(g) {
+export function areaCentroid(g) {
   let A = 0; const c = [0, 0, 0]
   for (let t = 0; t < g.idx.length; t += 3) {
     const [a, b, d] = [g.idx[t], g.idx[t + 1], g.idx[t + 2]].map((v) => [g.pos[v * 3], g.pos[v * 3 + 1], g.pos[v * 3 + 2]])
