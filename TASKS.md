@@ -71,13 +71,14 @@ Status: `todo` · `doing` · `blocked` · `done`. Lanes let agents run in parall
 ## M3 — CT, vessels, spine
 | ID | Task | Lane | Deps | Paths | Acceptance | Status | Owner |
 |---|---|---|---|---|---|---|---|
-| T3.1 | `ct_body` classical (skin/bone/lung/air via HU) | P | T2.1,T2.6 | `pipelines/ct_body/` | Public CT → 4 surfaces | doing | agent-CT |
-| T3.2 | TotalSegmentator backend (open tasks only, `[ai]` extra, model pull, licence guard) | P | T3.1 | `segment/totalseg/` | Licensed tasks unreachable; `--fast` runs on CPU | doing | agent-CT |
+| T3.1 | `ct_body` classical (skin/bone/lung/air via HU) | P | T2.1,T2.6 | `pipelines/ct_body/` | Public CT → 4 surfaces | done | agent-CT |
+| T3.2 | TotalSegmentator backend (open tasks only, `[ai]` extra, model pull, licence guard) | P | T3.1 | `segment/totalseg/` | Licensed tasks unreachable; `--fast` runs on CPU | done | agent-CT |
 | T3.3 | `vessels` pipeline (prototype top-hat + shape filters, CTA variant) | P | T2.1 | `pipelines/vessels/` | Public TOF → vessel mesh, no scalp fat | done | agent-V |
-| T3.4 | `spine_mr` pipeline + sagittal-first layout | P | T2.1 | `pipelines/spine_mr/` | Cord/CSF/vertebra surfaces | doing | agent-CT |
+| T3.4 | `spine_mr` pipeline + sagittal-first layout | P | T2.1 | `pipelines/spine_mr/` | Cord/CSF/vertebra surfaces | done | agent-CT |
 | T3.5 | Knowledge base: body organs, bones, vessels, spine | K | T2.11 | `knowledge/` | Covers all TotalSegmentator open labels | done | agent-K |
 | T3.6 | 3D UI generalisation for body/spine/vessels (layers from regions.json, framing presets, group palette, body-scale explode/clip, system-grouped tree, graceful cards) + model options/backend picker | W | T2.9,T2.10 | `web/src/lib/viewer3d/`, `web/src/routes/model3d/` | Brain unchanged; body + spine mocks render with correct framing | doing | agent-W |
 | T3.7 | Mock mode: synthetic body (CT) and spine models | W | T3.6 | `web/scripts/` | `npm run dev:mock` lists brain, body and spine demo studies | doing | agent-W |
+| T3.8 | Validate ct_body/spine_mr on public datasets; real TotalSegmentator run with the `totalseg` extra (torch CPU index) | Q | T3.1,T3.2,T3.4 | `docs/VALIDATION.md` | Dice/runtime recorded; totalseg path verified offline | todo | |
 
 ## M4 — X-ray
 | ID | Task | Lane | Deps | Paths | Acceptance | Status | Owner |
@@ -135,3 +136,7 @@ T8.1 Tauri v2 desktop app (engine sidecar) · T8.2 hosted web mode (OIDC, job qu
 2026-11-22 | agent-K | T3.5 | done | BODY vocab = 224 ids from 31 open TotalSegmentator tasks (upstream 88060518, pkg 2.18.0; class list in knowledge/totalseg_classes.json + knowledge/totalseg.py); findings/devices excluded; +3 lobes (nervous, sensory, body_regions); +9 KB categories; KB en/hi 320 structures / 27 lobes (v2). Hindi needs clinician review; web needs cat.* i18n keys for new categories (W lane)
 2026-11-22 | agent-V | T3.3 | done | pipelines/vessels: TOF (eroded head mask, separable top-hat, Hessian tubularity, hysteresis, outer-shell component drop, skull-base split V__cow/V__neck, H__skin) + CTA (HU band minus dilated bone, tubular components, V__body); synthetic phantoms prove scalp fat / vertebrae / blobs excluded; ~5 s TOF phantom (6.5M vox), <1 s CTA phantom | 6d9ffd0
 2026-11-22 | agent-V | T2.13 | done | brain_mr/layers.py: H__skin (hidden by default) + TOF vessels registered into the reference (inverse of ref->TOF rigid), regions.json gains pipeline/framing/layers; known-shift test catches a reversed transform. Not yet verified against a real public TOF or in the browser UI | 2fdcb2c
+2026-11-22 | agent-CT | T3.1 | done | ct_body classical (couch removal, skeleton, L/R lungs, airway traced from the top; volume + mean HU with method/caveats) + generic geometry/labels_surface.py + pipelines/labelled.py artifact writer; registry + GET /model/options + POST backend param (routes_model.py, additive). Phantom 80x128x128: 3.7 s; 512x512x320 grid: ~11 s seg+surfaces, GLB 10.5 MB | f55e685
+2026-11-22 | agent-CT | T3.4 | done | spine_mr classical (CSF, cord, vertebral bodies, discs from z-profile peaks; levels not numbered -> vertebral_column; primary_series = sagittal). Phantom: 2.7 s | f55e685
+2026-11-22 | agent-CT | T3.2 | done | TotalSegmentator backend: open-task allow-list guard, total --fast only, weights via `models pull totalseg-total-fast` (pinned 135 MB zip; models/registry.py additive), telemetry/downloads stubbed + sockets blocked; optional extra `totalseg` in pyproject (uv.lock regenerated; NOT installed in the dev venv: torch + nnU-Net too heavy) so tested with mocks; licence notes in RESEARCH.md. A real-weights run is still unverified -> T3.8 | 9881f6e
+2026-11-22 | agent-CT | T3.8 | new | real-data validation + end-to-end TotalSegmentator run
