@@ -106,8 +106,13 @@ SPINE: dict[str, tuple[str, Group, bool]] = {
     "spinal_csf": ("nervous_spine", "spine", False),
     "intervertebral_disc": ("spinal_column", "spine", False),
     "vertebral_column": ("spinal_column", "bone", False),  # when individual levels can't be separated
-    **{f"vertebrae_{lv}": ("spinal_column", "bone", False) for lv in
-       [f"c{i}" for i in range(1, 8)] + [f"t{i}" for i in range(1, 13)] + [f"l{i}" for i in range(1, 6)] + ["s1"]},
+    **{
+        f"vertebrae_{lv}": ("spinal_column", "bone", False)
+        for lv in [f"c{i}" for i in range(1, 8)]
+        + [f"t{i}" for i in range(1, 13)]
+        + [f"l{i}" for i in range(1, 6)]
+        + ["s1"]
+    },
 }
 
 # Teeth in FDI order: position 1..8 within each quadrant (1 upper right, 2 upper left, 3 lower left, 4 lower right).
